@@ -1,0 +1,6 @@
+[package]
+name = "binarysearch"
+version = "0.1.0"
+authors = ["Alexander Lopatin <alopatindev@gmail.com>"]
+
+[dependencies]
