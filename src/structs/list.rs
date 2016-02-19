@@ -1,11 +1,9 @@
-//mod algorithms;
-
-struct Node<'a> {
+pub struct Node<'a> {
     data: i32,
     next: Option<&'a Node<'a>>,
 }
 
-struct NodeIterator<'a> {
+pub struct NodeIterator<'a> {
     current: Option<&'a Node<'a>>,
 }
 
@@ -25,26 +23,26 @@ impl<'a> Iterator for NodeIterator<'a> {
 }
 
 impl<'a> Node<'a> {
-    fn new(data: i32, next: Option<&'a Node<'a>>) -> Self {
+    pub fn new(data: i32, next: Option<&'a Node<'a>>) -> Self {
         Node { data: data, next: next }
     }
 
-    fn push(&'a self, data: i32) -> Node<'a> {
+    pub fn push(&'a self, data: i32) -> Node<'a> {
         Node::new(data, Some(&self))
     }
 
-    fn iter(&'a self) -> NodeIterator<'a> {
+    pub fn iter(&'a self) -> NodeIterator<'a> {
         NodeIterator { current: Some(self) }
     }
 
-    fn print(&'a self) {
+    pub fn print(&'a self) {
         for i in self.iter() {
             print!("{} ", i);
         }
         println!("");
     }
 
-    fn sum(&self) -> i32 {
+    pub fn sum(&self) -> i32 {
         self.iter().fold(0, |a, b| a + b)
     }
 }

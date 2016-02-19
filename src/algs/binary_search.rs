@@ -1,5 +1,3 @@
-//mod algorithms;
-
 //#![feature(libc)]
 //extern crate libc;
 use std;
