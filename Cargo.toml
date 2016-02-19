@@ -1,10 +1,10 @@
 [package]
 name = "rust_experiments"
 version = "0.1.0"
-authors = ["Alexander Lopatin <alopatindev@gmail.com>"]
+authors = ["Alexander Lopatin"]
 
-#[lib]
-#name = "mylib"
-#path = "src/lib.rs"
+[lib]
+name = "rust_experiments"
+path = "src/lib.rs"
 
 [dependencies]
