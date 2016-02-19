@@ -1,6 +1,10 @@
 [package]
-name = "binarysearch"
+name = "algorithms"
 version = "0.1.0"
 authors = ["Alexander Lopatin <alopatindev@gmail.com>"]
+
+#[lib]
+#name = "mylib"
+#path = "src/lib.rs"
 
 [dependencies]
