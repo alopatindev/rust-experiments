@@ -1,5 +1,5 @@
 [package]
-name = "algorithms"
+name = "rust_experiments"
 version = "0.1.0"
 authors = ["Alexander Lopatin <alopatindev@gmail.com>"]
 
