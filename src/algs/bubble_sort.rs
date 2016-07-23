@@ -2,10 +2,11 @@ use std;
 
 pub fn bubble_sort<T: std::cmp::PartialOrd + std::fmt::Display + std::fmt::Debug>(a: &mut Vec<T>) -> &mut Vec<T> {
     let mut swapped = true;
+    let mut n = a.len();
     while swapped {
         let mut i = 0;
         swapped = false;
-        while i < a.len() - 1 {
+        while i < n - 1 {
             if a[i] > a[i + 1] {
                 a.swap(i, i + 1);
                 swapped = true;
@@ -13,6 +14,7 @@ pub fn bubble_sort<T: std::cmp::PartialOrd + std::fmt::Display + std::fmt::Debug
             }
             i += 1;
         }
+        n -= 1;
     }
     a
 }
