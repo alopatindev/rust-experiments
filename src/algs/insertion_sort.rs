@@ -6,6 +6,7 @@ pub fn insertion_sort<T: std::cmp::PartialOrd + std::fmt::Display + std::fmt::De
         let mut j = i + 1;
         while j > 0 && a[j] < a[j - 1] {
             a.swap(j, j - 1);
+            //println!("{:?} i={} j={}", *a, i, j);
             j -= 1;
         }
         i += 1;
