@@ -3,7 +3,7 @@ use rust_experiments::*;
 
 fn array_search() {
     let a: Vec<i32> = vec![10, 22, 55, 66, 66, 333, 1234, 6689];
-    assert_eq!(algs::binary_search::bsearch(&a, &55), Some(2));
+    assert_eq!(algs::binary_search::binary_search(&a, &55), Some(2));
 }
 
 fn print_list() {
