@@ -1,8 +1,13 @@
 pub fn binary_search<T: PartialOrd>(a: &[T], pattern: &T) -> Option<usize> {
-    let last: usize = a.len() - 1;
+    let n = a.len();
+    if n == 0 {
+        return None
+    }
 
-    let mut low: usize = 0;
-    let mut high: usize = last;
+    let last = n - 1;
+
+    let mut low = 0;
+    let mut high = last;
 
     while low <= high {
         // let mid = (low + high) / 2; // buggy version
@@ -44,6 +49,11 @@ fn test_binary_search() {
     assert_eq!(binary_search(&a, &10000), None);
 }
 
+#[test]
+fn test_binary_search_empty() {
+    let a: Vec<i32> = vec![];
+    assert_eq!(binary_search(&a, &1), None);
+}
 
 /// works on x86_64 Linux after `echo -n 1 > /proc/sys/vm/overcommit_memory`
 #[test]

@@ -65,12 +65,16 @@ fn helper<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>, bounds: &Bound
 
 pub fn merge_sort<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
     let n = a.len();
-    helper(a, &(0..n));
+
+    if n > 0 {
+        helper(a, &(0..n));
+    }
+
     a
 }
 
 #[test]
-fn test_merge1() {
+fn test_merge_1() {
     let mut a = vec![6,7,1,2];
     let b = vec![1,2,6,7];
     let n = a.len();
@@ -78,7 +82,7 @@ fn test_merge1() {
 }
 
 #[test]
-fn test_merge2() {
+fn test_merge_2() {
     let mut a = vec![3,1,2];
     let b = vec![1,2,3];
     let n = a.len();
@@ -92,4 +96,18 @@ fn test_merge_sort() {
     assert_eq!(a.len(), b.len());
     let a = merge_sort(&mut a);
     assert_eq!(b, *a);
+}
+
+#[test]
+fn test_merge_sort_empty() {
+    let mut a: Vec<i32> = vec![];
+    let a = merge_sort(&mut a);
+    assert_eq!(0, a.len());
+}
+
+#[test]
+fn test_merge_sort_single() {
+    let mut a: Vec<i32> = vec![1];
+    let a = merge_sort(&mut a);
+    assert_eq!(1, a.len());
 }

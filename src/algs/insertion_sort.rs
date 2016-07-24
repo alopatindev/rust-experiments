@@ -1,8 +1,13 @@
 use std::fmt::*;
 
 pub fn insertion_sort<T: PartialOrd + Display + Debug>(a: &mut Vec<T>) -> &mut Vec<T> {
+    let n = a.len();
+    if n == 0 {
+        return a
+    }
+
     let mut i = 0;
-    while i < a.len() - 1 {
+    while i < n - 1 {
         let mut j = i + 1;
         while j > 0 && a[j] < a[j - 1] {
             a.swap(j, j - 1);
@@ -10,6 +15,7 @@ pub fn insertion_sort<T: PartialOrd + Display + Debug>(a: &mut Vec<T>) -> &mut V
         }
         i += 1;
     }
+
     a
 }
 
@@ -20,4 +26,18 @@ fn test_insertion_sort() {
     assert_eq!(a.len(), b.len());
     let a = insertion_sort(&mut a);
     assert!(*a == b);
+}
+
+#[test]
+fn test_insertion_sort_empty() {
+    let mut a: Vec<i32> = vec![];
+    let a = insertion_sort(&mut a);
+    assert_eq!(0, a.len());
+}
+
+#[test]
+fn test_insertion_sort_single() {
+    let mut a: Vec<i32> = vec![1];
+    let a = insertion_sort(&mut a);
+    assert_eq!(1, a.len());
 }
