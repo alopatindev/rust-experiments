@@ -1,7 +1,7 @@
 use std::fmt::*;
 use std::ops::Range;
 
-type Bounds = Range<usize>;
+pub type Bounds = Range<usize>;
 
 fn split(bounds: &Bounds) -> (Bounds, Bounds) {
     assert!(bounds.start < bounds.end);
@@ -15,10 +15,11 @@ fn split(bounds: &Bounds) -> (Bounds, Bounds) {
     (left, right)
 }
 
-fn merge<T: PartialOrd + Display + Debug + Copy>(a: &Vec<T>, bounds: &Bounds) -> Vec<T> {
+pub fn merge<T: PartialOrd + Display + Debug + Copy>(a: &Vec<T>, bounds: &Bounds) -> Vec<T> {
     assert!(bounds.start < bounds.end);
 
     let mut result: Vec<T> = vec![];
+    result.reserve_exact(bounds.len());
 
     let (left, right) = split(&bounds);
 
@@ -73,41 +74,56 @@ pub fn merge_sort<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>) -> &mu
     a
 }
 
-#[test]
-fn test_merge_1() {
-    let mut a = vec![6,7,1,2];
-    let b = vec![1,2,6,7];
-    let n = a.len();
-    assert_eq!(b, merge(&mut a, &(0..n)));
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use test;
 
-#[test]
-fn test_merge_2() {
-    let mut a = vec![3,1,2];
-    let b = vec![1,2,3];
-    let n = a.len();
-    assert_eq!(b, merge(&mut a, &(0..n)));
-}
+    #[test]
+    fn test_merge_1() {
+        let mut a = vec![6,7,1,2];
+        let b = vec![1,2,6,7];
+        let n = a.len();
+        assert_eq!(b, merge(&mut a, &(0..n)));
+    }
 
-#[test]
-fn test_merge_sort() {
-    let mut a: Vec<i32> = vec![4,2,8,9,3,1,0,5,6,7];
-    let b: Vec<i32> = (0..10).collect();
-    assert_eq!(a.len(), b.len());
-    let a = merge_sort(&mut a);
-    assert_eq!(b, *a);
-}
+    #[test]
+    fn test_merge_2() {
+        let mut a = vec![3,1,2];
+        let b = vec![1,2,3];
+        let n = a.len();
+        assert_eq!(b, merge(&mut a, &(0..n)));
+    }
 
-#[test]
-fn test_merge_sort_empty() {
-    let mut a: Vec<i32> = vec![];
-    let a = merge_sort(&mut a);
-    assert_eq!(0, a.len());
-}
+    #[test]
+    fn test_merge_sort() {
+        let mut a: Vec<i32> = vec![4,2,8,9,3,1,0,5,6,7];
+        let b: Vec<i32> = (0..10).collect();
+        assert_eq!(a.len(), b.len());
+        let a = merge_sort(&mut a);
+        assert_eq!(b, *a);
+    }
 
-#[test]
-fn test_merge_sort_single() {
-    let mut a: Vec<i32> = vec![1];
-    let a = merge_sort(&mut a);
-    assert_eq!(1, a.len());
+    #[test]
+    fn test_merge_sort_empty() {
+        let mut a: Vec<i32> = vec![];
+        let a = merge_sort(&mut a);
+        assert_eq!(0, a.len());
+    }
+
+    #[test]
+    fn test_merge_sort_single() {
+        let mut a: Vec<i32> = vec![1];
+        let a = merge_sort(&mut a);
+        assert_eq!(1, a.len());
+    }
+
+    #[bench]
+    #[ignore]
+    fn bench_merge_sort(b: &mut test::Bencher) {
+        b.iter(|| {
+            let mut a = vec![1,4,0,45,6];
+            merge_sort(&mut a);
+        })
+    }
 }
