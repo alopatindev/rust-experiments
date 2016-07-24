@@ -3,59 +3,6 @@ use std::ops::Range;
 
 pub type Bounds = Range<usize>;
 
-fn split(bounds: &Bounds) -> (Bounds, Bounds) {
-    assert!(bounds.start < bounds.end);
-
-    let n = bounds.len();
-    let half = n / 2 - 1;
-
-    let left = bounds.start .. bounds.start + half + 1;
-    let right = left.end .. bounds.end;
-
-    (left, right)
-}
-
-pub fn merge<T: PartialOrd + Display + Debug + Copy>(a: &Vec<T>, bounds: &Bounds) -> Vec<T> {
-    assert!(bounds.start < bounds.end);
-
-    let accumulate_result = |index: &mut usize, result: &mut Vec<T>| {
-        result.push(a[*index]);
-        *index += 1;
-    };
-
-    let mut result: Vec<T> = vec![];
-    result.reserve_exact(bounds.len());
-
-    let (left, right) = split(&bounds);
-    let mut i = left.start;
-    let mut j = right.start;
-
-    while i < left.end && j < right.end {
-        if a[i] < a[j] {
-            accumulate_result(&mut i, &mut result);
-        } else {
-            accumulate_result(&mut j, &mut result);
-        }
-    }
-
-    while i < left.end {
-        accumulate_result(&mut i, &mut result);
-    }
-
-    while j < right.end {
-        accumulate_result(&mut j, &mut result);
-    }
-
-    result
-}
-
-fn merge_and_update<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>, bounds: &Bounds) {
-    let merged = merge(a, &bounds);
-    for i in 0..merged.len() {
-        a[bounds.start + i] = merged[i];
-    }
-}
-
 pub fn merge_sort_recursive<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
     fn helper<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>, bounds: &Bounds) {
         assert!(bounds.start < bounds.end);
@@ -104,6 +51,59 @@ pub fn merge_sort_iterative<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<
     a
 }
 
+pub fn merge<T: PartialOrd + Display + Debug + Copy>(a: &Vec<T>, bounds: &Bounds) -> Vec<T> {
+    assert!(bounds.start < bounds.end);
+
+    let accumulate_result = |index: &mut usize, result: &mut Vec<T>| {
+        result.push(a[*index]);
+        *index += 1;
+    };
+
+    let mut result: Vec<T> = vec![];
+    result.reserve_exact(bounds.len());
+
+    let (left, right) = split(&bounds);
+    let mut i = left.start;
+    let mut j = right.start;
+
+    while i < left.end && j < right.end {
+        if a[i] < a[j] {
+            accumulate_result(&mut i, &mut result);
+        } else {
+            accumulate_result(&mut j, &mut result);
+        }
+    }
+
+    while i < left.end {
+        accumulate_result(&mut i, &mut result);
+    }
+
+    while j < right.end {
+        accumulate_result(&mut j, &mut result);
+    }
+
+    result
+}
+
+fn merge_and_update<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>, bounds: &Bounds) {
+    let merged = merge(a, &bounds);
+    for i in 0..merged.len() {
+        a[bounds.start + i] = merged[i];
+    }
+}
+
+fn split(bounds: &Bounds) -> (Bounds, Bounds) {
+    assert!(bounds.start < bounds.end);
+
+    let n = bounds.len();
+    let half = n / 2 - 1;
+
+    let left = bounds.start .. bounds.start + half + 1;
+    let right = left.end .. bounds.end;
+
+    (left, right)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -145,7 +145,7 @@ mod tests {
     }
 
     #[test]
-    fn test_merge_1() {
+    fn test_merge_even() {
         let mut a = vec![6,7,1,2];
         let b = vec![1,2,6,7];
         let n = a.len();
@@ -153,7 +153,7 @@ mod tests {
     }
 
     #[test]
-    fn test_merge_2() {
+    fn test_merge_odd() {
         let mut a = vec![3,1,2];
         let b = vec![1,2,3];
         let n = a.len();
