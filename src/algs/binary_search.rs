@@ -1,6 +1,4 @@
-use std;
-
-pub fn binary_search<T: std::cmp::PartialOrd>(a: &[T], pattern: &T) -> Option<usize> {
+pub fn binary_search<T: PartialOrd>(a: &[T], pattern: &T) -> Option<usize> {
     let last: usize = a.len() - 1;
 
     let mut low: usize = 0;
@@ -9,7 +7,6 @@ pub fn binary_search<T: std::cmp::PartialOrd>(a: &[T], pattern: &T) -> Option<us
     while low <= high {
         //let mid = (low + high) / 2;             // buggy version
         let mid = low + (high - low) / 2;
-        //println!("low={} high={} mid={} max={}", low, high, mid, usize::max_value());
         if a[mid] == *pattern {
             return Some(mid);
         } if a[mid] > *pattern && mid > 0 {

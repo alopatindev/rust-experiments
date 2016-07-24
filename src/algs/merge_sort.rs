@@ -1,4 +1,4 @@
-use std;
+use std::fmt::*;
 
 fn split(low: usize, high: usize) -> (usize, usize, usize, usize) {
     assert!(low <= high);
@@ -7,8 +7,7 @@ fn split(low: usize, high: usize) -> (usize, usize, usize, usize) {
     (low, low + half, low + half + 1, high)
 }
 
-fn merge<T: std::cmp::PartialOrd + std::fmt::Display + std::fmt::Debug + Copy>(a: &Vec<T>, low: usize, high: usize) -> Vec<T> {
-    //println!("merge a={:?} low={} high={}", *a, low, high);
+fn merge<T: PartialOrd + Display + Debug + Copy>(a: &Vec<T>, low: usize, high: usize) -> Vec<T> {
     assert!(low <= high);
 
     let mut result: Vec<T> = vec![];
@@ -41,8 +40,7 @@ fn merge<T: std::cmp::PartialOrd + std::fmt::Display + std::fmt::Debug + Copy>(a
     result
 }
 
-fn helper<T: std::cmp::PartialOrd + std::fmt::Display + std::fmt::Debug + Copy>(a: &mut Vec<T>, low: usize, high: usize) -> &mut Vec<T> {
-    //println!("helper {:?} {} {}", *a, low, high);
+fn helper<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>, low: usize, high: usize) -> &mut Vec<T> {
     if low != high {
         let (low1, high1, low2, high2) = split(low, high);
         helper(a, low1, high1);
@@ -55,7 +53,7 @@ fn helper<T: std::cmp::PartialOrd + std::fmt::Display + std::fmt::Debug + Copy>(
     a
 }
 
-pub fn merge_sort<T: std::cmp::PartialOrd + std::fmt::Display + std::fmt::Debug + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
+pub fn merge_sort<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
     let n = a.len();
     helper(a, 0, n - 1)
 }
