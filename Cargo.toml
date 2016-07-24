@@ -8,3 +8,4 @@ name = "rust_experiments"
 path = "src/lib.rs"
 
 [dependencies]
+libc = "0.2.14"

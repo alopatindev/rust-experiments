@@ -5,7 +5,7 @@ pub fn binary_search<T: PartialOrd>(a: &[T], pattern: &T) -> Option<usize> {
     let mut high: usize = last;
 
     while low <= high {
-        //let mid = (low + high) / 2;             // buggy version
+        // let mid = (low + high) / 2; // buggy version
         let mid = low + (high - low) / 2;
         if a[mid] == *pattern {
             return Some(mid);
@@ -44,9 +44,14 @@ fn test_binary_search() {
     assert_eq!(binary_search(&a, &10000), None);
 }
 
-/*
+
 /// works on x86_64 Linux after `echo -n 1 > /proc/sys/vm/overcommit_memory`
+#[test]
+#[ignore]
 fn test_binary_search_heavy() {
+    extern crate libc;
+    use std::{mem, ptr};
+
     const N: usize = ((1usize << 46) + (1usize << 44));
 
     type T = i8;
@@ -96,4 +101,4 @@ fn test_binary_search_heavy() {
     }
 
     println!("success!");
-}*/
+}

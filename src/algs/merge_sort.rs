@@ -1,61 +1,72 @@
 use std::fmt::*;
+use std::ops::Range;
 
-fn split(low: usize, high: usize) -> (usize, usize, usize, usize) {
-    assert!(low <= high);
-    let n = high - low + 1;
+type Bounds = Range<usize>;
+
+fn split(bounds: &Bounds) -> (Bounds, Bounds) {
+    assert!(bounds.start < bounds.end);
+
+    let n = bounds.len();
     let half = n / 2 - 1;
-    (low, low + half, low + half + 1, high)
+
+    let left = bounds.start .. bounds.start + half + 1;
+    let right = left.end .. bounds.end;
+
+    (left, right)
 }
 
-fn merge<T: PartialOrd + Display + Debug + Copy>(a: &Vec<T>, low: usize, high: usize) -> Vec<T> {
-    assert!(low <= high);
+fn merge<T: PartialOrd + Display + Debug + Copy>(a: &Vec<T>, bounds: &Bounds) -> Vec<T> {
+    assert!(bounds.start < bounds.end);
 
     let mut result: Vec<T> = vec![];
 
-    let (low1, high1, low2, high2) = split(low, high);
+    let (left, right) = split(&bounds);
 
-    let mut j = low1;
-    let mut k = low2;
+    let mut i = left.start;
+    let mut j = right.start;
 
-    while j <= high1 && k <= high2 {
-        if a[j] < a[k] {
+    while i < left.end && j < right.end {
+        if a[i] < a[j] {
+            result.push(a[i]);
+            i += 1;
+        } else {
             result.push(a[j]);
             j += 1;
-        } else {
-            result.push(a[k]);
-            k += 1;
         }
     }
 
-    while j <= high1 {
-        result.push(a[j]);
-        j += 1;
+    while i < left.end {
+        result.push(a[i]);
+        i += 1;
     }
 
-    while k <= high2 {
-        result.push(a[k]);
-        k += 1;
+    while j < right.end {
+        result.push(a[j]);
+        j += 1;
     }
 
     result
 }
 
-fn helper<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>, low: usize, high: usize) -> &mut Vec<T> {
-    if low != high {
-        let (low1, high1, low2, high2) = split(low, high);
-        helper(a, low1, high1);
-        helper(a, low2, high2);
-        let merged = merge(a, low, high);
+fn helper<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>, bounds: &Bounds) {
+    assert!(bounds.start < bounds.end);
+
+    if bounds.len() > 1 {
+        let (left, right) = split(&bounds);
+        helper(a, &left);
+        helper(a, &right);
+
+        let merged = merge(a, &bounds);
         for i in 0..merged.len() {
-            a[low + i] = merged[i];
+            a[bounds.start + i] = merged[i];
         }
     }
-    a
 }
 
 pub fn merge_sort<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
     let n = a.len();
-    helper(a, 0, n - 1)
+    helper(a, &(0..n));
+    a
 }
 
 #[test]
@@ -63,7 +74,7 @@ fn test_merge1() {
     let mut a = vec![6,7,1,2];
     let b = vec![1,2,6,7];
     let n = a.len();
-    assert_eq!(b, merge(&mut a, 0, n - 1));
+    assert_eq!(b, merge(&mut a, &(0..n)));
 }
 
 #[test]
@@ -71,7 +82,7 @@ fn test_merge2() {
     let mut a = vec![3,1,2];
     let b = vec![1,2,3];
     let n = a.len();
-    assert_eq!(b, merge(&mut a, 0, n - 1));
+    assert_eq!(b, merge(&mut a, &(0..n)));
 }
 
 #[test]
