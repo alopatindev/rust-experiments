@@ -64,11 +64,44 @@ fn helper<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>, bounds: &Bound
     }
 }
 
-pub fn merge_sort<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
+pub fn merge_sort_recursive<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
     let n = a.len();
 
     if n > 0 {
         helper(a, &(0..n));
+    }
+
+    a
+}
+
+pub fn merge_sort<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
+    let n = a.len();
+
+    if n > 0 {
+        let mut queue: Vec<Bounds> = vec![];
+        let mut stack: Vec<Bounds> = vec![];
+
+        queue.push((0..n));
+        while !queue.is_empty() {
+            let bounds = queue.pop().unwrap();
+            if bounds.len() > 1 {
+                let (left, right) = split(&bounds);
+                stack.push(bounds);
+                stack.push(left.clone());
+                stack.push(right.clone());
+                queue.push(left);
+                queue.push(right);
+            }
+        }
+
+        while let Some(bounds) = stack.pop() {
+            if bounds.len() > 1 {
+                let merged = merge(a, &bounds);
+                for i in 0..merged.len() {
+                    a[bounds.start + i] = merged[i];
+                }
+            }
+        }
     }
 
     a
