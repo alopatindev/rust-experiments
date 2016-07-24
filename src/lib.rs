@@ -1,5 +1,5 @@
 #![feature(test)]
 extern crate test;
 
-pub mod algs;
+pub mod algorithms;
 pub mod structs;
