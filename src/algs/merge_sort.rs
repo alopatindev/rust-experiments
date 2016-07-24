@@ -1,4 +1,4 @@
-use std::fmt::*;
+use std::fmt::{Display, Debug};
 use std::ops::Range;
 
 pub type Bounds = Range<usize>;
@@ -49,57 +49,54 @@ pub fn merge<T: PartialOrd + Display + Debug + Copy>(a: &Vec<T>, bounds: &Bounds
     result
 }
 
-fn helper<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>, bounds: &Bounds) {
-    assert!(bounds.start < bounds.end);
+pub fn merge_sort_recursive<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
+    fn helper<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>, bounds: &Bounds) {
+        assert!(bounds.start < bounds.end);
 
-    if bounds.len() > 1 {
-        let (left, right) = split(&bounds);
-        helper(a, &left);
-        helper(a, &right);
+        if bounds.len() > 1 {
+            let (left, right) = split(&bounds);
+            helper(a, &left);
+            helper(a, &right);
 
-        let merged = merge(a, &bounds);
-        for i in 0..merged.len() {
-            a[bounds.start + i] = merged[i];
+            let merged = merge(a, &bounds);
+            for i in 0..merged.len() {
+                a[bounds.start + i] = merged[i];
+            }
         }
     }
-}
 
-pub fn merge_sort_recursive<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
     let n = a.len();
-
-    if n > 0 {
+    if n > 1 {
         helper(a, &(0..n));
     }
 
     a
 }
 
-pub fn merge_sort<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
+pub fn merge_sort_iterative<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
     let n = a.len();
+    if n <= 1 {
+        return a;
+    }
 
-    if n > 0 {
-        let mut queue: Vec<Bounds> = vec![];
-        let mut stack: Vec<Bounds> = vec![];
+    let mut queue: Vec<Bounds> = vec![];
+    let mut stack: Vec<Bounds> = vec![];
 
-        queue.push((0..n));
-        while !queue.is_empty() {
-            let bounds = queue.pop().unwrap();
-            if bounds.len() > 1 {
-                let (left, right) = split(&bounds);
-                stack.push(bounds);
-                stack.push(left.clone());
-                stack.push(right.clone());
-                queue.push(left);
-                queue.push(right);
-            }
+    queue.push((0..n));
+    while let Some(bounds) = queue.pop() {
+        if bounds.len() > 1 {
+            let (left, right) = split(&bounds);
+            stack.push(bounds);
+            queue.push(left);
+            queue.push(right);
         }
+    }
 
-        while let Some(bounds) = stack.pop() {
-            if bounds.len() > 1 {
-                let merged = merge(a, &bounds);
-                for i in 0..merged.len() {
-                    a[bounds.start + i] = merged[i];
-                }
+    while let Some(bounds) = stack.pop() {
+        if bounds.len() > 1 {
+            let merged = merge(a, &bounds);
+            for i in 0..merged.len() {
+                a[bounds.start + i] = merged[i];
             }
         }
     }
@@ -111,6 +108,41 @@ pub fn merge_sort<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>) -> &mu
 mod tests {
     use super::*;
     use test;
+    extern crate rand;
+
+    #[test]
+    fn test_merge_sort() {
+        type T = i32;
+
+        fn test_merge_sort_impl(func: fn(&mut Vec<T>) -> &mut Vec<T>) {
+            let merge_sort = || {
+                let mut a: Vec<i32> = vec![4,2,8,9,3,1,0,5,6,7];
+                let b: Vec<i32> = (0..10).collect();
+                assert_eq!(a.len(), b.len());
+                let a = func(&mut a);
+                assert_eq!(b, *a);
+            };
+
+            let merge_sort_empty = || {
+                let mut a: Vec<i32> = vec![];
+                let a = func(&mut a);
+                assert!(a.is_empty());
+            };
+
+            let merge_sort_single = || {
+                let mut a: Vec<i32> = vec![1];
+                let a = func(&mut a);
+                assert_eq!(1, a.len());
+            };
+
+            merge_sort();
+            merge_sort_empty();
+            merge_sort_single();
+        }
+
+        test_merge_sort_impl(merge_sort_iterative);
+        test_merge_sort_impl(merge_sort_recursive);
+    }
 
     #[test]
     fn test_merge_1() {
@@ -128,35 +160,29 @@ mod tests {
         assert_eq!(b, merge(&mut a, &(0..n)));
     }
 
-    #[test]
-    fn test_merge_sort() {
-        let mut a: Vec<i32> = vec![4,2,8,9,3,1,0,5,6,7];
-        let b: Vec<i32> = (0..10).collect();
-        assert_eq!(a.len(), b.len());
-        let a = merge_sort(&mut a);
-        assert_eq!(b, *a);
+    fn make_random_vec(n: usize) -> Vec<i32> {
+        let mut a = vec![0; n];
+        for i in 0..n {
+            a[i] = rand::random::<i32>() % 100;
+        }
+        a
     }
 
-    #[test]
-    fn test_merge_sort_empty() {
-        let mut a: Vec<i32> = vec![];
-        let a = merge_sort(&mut a);
-        assert_eq!(0, a.len());
-    }
+    const BENCH_MAXN: usize = 1000;
 
-    #[test]
-    fn test_merge_sort_single() {
-        let mut a: Vec<i32> = vec![1];
-        let a = merge_sort(&mut a);
-        assert_eq!(1, a.len());
+    #[bench]
+    fn bench_merge_sort_recursive(b: &mut test::Bencher) {
+        b.iter(|| for n in 0..BENCH_MAXN {
+            let mut a = make_random_vec(n);
+            let _ = merge_sort_recursive(&mut a);
+        })
     }
 
     #[bench]
-    #[ignore]
-    fn bench_merge_sort(b: &mut test::Bencher) {
-        b.iter(|| {
-            let mut a = vec![1,4,0,45,6];
-            merge_sort(&mut a);
+    fn bench_merge_sort_iterative(b: &mut test::Bencher) {
+        b.iter(|| for n in 0..BENCH_MAXN {
+            let mut a = make_random_vec(n);
+            let _ = merge_sort_iterative(&mut a);
         })
     }
 }

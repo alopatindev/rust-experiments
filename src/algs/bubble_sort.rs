@@ -1,4 +1,4 @@
-use std::fmt::*;
+use std::fmt::{Display, Debug};
 
 pub fn bubble_sort<T: PartialOrd + Display + Debug>(a: &mut Vec<T>) -> &mut Vec<T> {
     let mut n = a.len();

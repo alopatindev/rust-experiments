@@ -119,7 +119,7 @@ mod tests {
         println!("success!");
     }
 
-    fn make_random_vec(n: usize) -> Vec<i32> {
+    fn make_random_sorted_vec(n: usize) -> Vec<i32> {
         let mut a = vec![0; n];
         let mut k = 0;
         for i in 0..n {
@@ -134,7 +134,7 @@ mod tests {
     #[bench]
     fn bench_binary_search_std(b: &mut test::Bencher) {
         b.iter(|| for n in 0..BENCH_MAXN {
-            let a = make_random_vec(n);
+            let a = make_random_sorted_vec(n);
             let _ = a.binary_search(&22);
         })
     }
@@ -142,7 +142,7 @@ mod tests {
     #[bench]
     fn bench_binary_search(b: &mut test::Bencher) {
         b.iter(|| for n in 0..BENCH_MAXN {
-            let a = make_random_vec(n);
+            let a = make_random_sorted_vec(n);
             let _ = binary_search(&a[..], &22);
         })
     }
