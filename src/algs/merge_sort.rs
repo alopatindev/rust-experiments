@@ -18,32 +18,32 @@ fn split(bounds: &Bounds) -> (Bounds, Bounds) {
 pub fn merge<T: PartialOrd + Display + Debug + Copy>(a: &Vec<T>, bounds: &Bounds) -> Vec<T> {
     assert!(bounds.start < bounds.end);
 
+    let accumulate_result = |index: &mut usize, result: &mut Vec<T>| {
+        result.push(a[*index]);
+        *index += 1;
+    };
+
     let mut result: Vec<T> = vec![];
     result.reserve_exact(bounds.len());
 
     let (left, right) = split(&bounds);
-
     let mut i = left.start;
     let mut j = right.start;
 
     while i < left.end && j < right.end {
         if a[i] < a[j] {
-            result.push(a[i]);
-            i += 1;
+            accumulate_result(&mut i, &mut result);
         } else {
-            result.push(a[j]);
-            j += 1;
+            accumulate_result(&mut j, &mut result);
         }
     }
 
     while i < left.end {
-        result.push(a[i]);
-        i += 1;
+        accumulate_result(&mut i, &mut result);
     }
 
     while j < right.end {
-        result.push(a[j]);
-        j += 1;
+        accumulate_result(&mut j, &mut result);
     }
 
     result
