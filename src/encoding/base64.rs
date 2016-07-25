@@ -35,7 +35,52 @@ pub fn base64_encode(input: String) -> String {
 }
 
 pub fn base64_decode(input: String) -> String {
-    input.to_string() // TODO
+    let data = string_to_vec(input.as_str());
+    let mut result: Vec<u8> = vec![];
+
+    let mut iter = 0;
+    let mut len = 0;
+
+    let mut buf: usize = 0;
+
+    let n = data.len();
+    let mut i = 0;
+    while i < n {
+        let c: u8 = BASE64_DECODE_TABLE[data[i]];
+        i += 1;
+
+        // FIXME: "unreachable pattern" and "this pattern matches any value"
+        // when using constants
+        match c {
+            64u8 => { continue; } // whitespace
+            65u8 => { break; } // equals
+            _ => {
+                buf = (buf << 6) | (c as usize);
+                iter += 1;
+
+                if iter == 4 {
+                    len += 3;
+                    result.push(((buf >> 16) & 255) as u8);
+                    result.push(((buf >> 8) & 255) as u8);
+                    result.push((buf & 255) as u8);
+                    buf = 0;
+                    iter = 0;
+                }
+            }
+        }
+    }
+
+    if iter == 3 {
+        len += 2;
+        result.push(((buf >> 10) & 255) as u8);
+        result.push(((buf >> 2) & 255) as u8);
+    } else if iter == 2 {
+        len += 1;
+        result.push(((buf >> 4) & 255) as u8);
+    }
+
+    result.truncate(len);
+    String::from_utf8(result).unwrap()
 }
 
 fn compute_char_index(data: &Vec<usize>, i: usize) -> usize {
@@ -71,12 +116,26 @@ fn string_to_vec(input: &str) -> Vec<usize> {
     data
 }
 
+const BASE64_DECODE_TABLE: [u8; 256] = [
+    66,66,66,66,66,66,66,66,66,66,64,66,66,66,66,66,66,66,66,66,66,66,66,66,66,
+    66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,62,66,66,66,63,52,53,
+    54,55,56,57,58,59,60,61,66,66,66,65,66,66,66, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+    10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,66,66,66,66,66,66,26,27,28,
+    29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,66,66,
+    66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,
+    66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,
+    66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,
+    66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,
+    66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,
+    66,66,66,66,66,66
+];
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const RAW: &'static str = "hello rust!";
-    const ENCODED: &'static str = "aGVsbG8gcnVzdCE=";
+    const RAW: &'static str = "Hello Rust! Привет Раст!\n";
+    const ENCODED: &'static str = "SGVsbG8gUnVzdCEg0J/RgNC40LLQtdGCINCg0LDRgdGCIQo=";
 
     #[test]
     fn test_base64_encode() {
