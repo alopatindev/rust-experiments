@@ -24,9 +24,9 @@ pub fn base64_encode(input: String) -> String {
         i += 3;
     }
 
-    let pad_count = n % 3;
-    if pad_count > 0 {
-        for _ in pad_count..3 {
+    let pads = n % 3;
+    if pads > 0 {
+        for _ in pads..3 {
             result.push(b'=');
         }
     }
@@ -42,6 +42,10 @@ pub fn base64_decode(input: String) -> String {
     let mut len = 0;
 
     let mut buf: usize = 0;
+    let add_to_result = |result: &mut Vec<u8>, buf: &usize, bits: usize| {
+        let value = (buf >> bits) & 255;
+        result.push(value as u8);
+    };
 
     let n = data.len();
     let mut i = 0;
@@ -49,20 +53,18 @@ pub fn base64_decode(input: String) -> String {
         let c: u8 = BASE64_DECODE_TABLE[data[i]];
         i += 1;
 
-        // FIXME: "unreachable pattern" and "this pattern matches any value"
-        // when using constants
         match c {
-            64u8 => { continue; } // whitespace
-            65u8 => { break; } // equals
+            WHITESPACE => { continue; }
+            EQUALS => { break; }
             _ => {
                 buf = (buf << 6) | (c as usize);
                 iter += 1;
 
                 if iter == 4 {
                     len += 3;
-                    result.push(((buf >> 16) & 255) as u8);
-                    result.push(((buf >> 8) & 255) as u8);
-                    result.push((buf & 255) as u8);
+                    add_to_result(&mut result, &buf, 16);
+                    add_to_result(&mut result, &buf, 8);
+                    add_to_result(&mut result, &buf, 0);
                     buf = 0;
                     iter = 0;
                 }
@@ -72,11 +74,11 @@ pub fn base64_decode(input: String) -> String {
 
     if iter == 3 {
         len += 2;
-        result.push(((buf >> 10) & 255) as u8);
-        result.push(((buf >> 2) & 255) as u8);
+        add_to_result(&mut result, &buf, 10);
+        add_to_result(&mut result, &buf, 2);
     } else if iter == 2 {
         len += 1;
-        result.push(((buf >> 4) & 255) as u8);
+        add_to_result(&mut result, &buf, 4);
     }
 
     result.truncate(len);
@@ -115,6 +117,10 @@ fn string_to_vec(input: &str) -> Vec<usize> {
     }
     data
 }
+
+
+const WHITESPACE: u8 = 64u8;
+const EQUALS: u8 = 65u8;
 
 const BASE64_DECODE_TABLE: [u8; 256] = [
     66,66,66,66,66,66,66,66,66,66,64,66,66,66,66,66,66,66,66,66,66,66,66,66,66,
