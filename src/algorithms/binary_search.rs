@@ -129,11 +129,11 @@ mod tests {
         a
     }
 
-    const BENCH_MAXN: usize = 1000;
+    const BENCH_MAX_N: usize = 1000;
 
     #[bench]
     fn bench_binary_search_std(b: &mut test::Bencher) {
-        b.iter(|| for n in 0..BENCH_MAXN {
+        b.iter(|| for n in 0..BENCH_MAX_N {
             let a = make_random_sorted_vec(n);
             let _ = a.binary_search(&22);
         })
@@ -141,7 +141,7 @@ mod tests {
 
     #[bench]
     fn bench_binary_search(b: &mut test::Bencher) {
-        b.iter(|| for n in 0..BENCH_MAXN {
+        b.iter(|| for n in 0..BENCH_MAX_N {
             let a = make_random_sorted_vec(n);
             let _ = binary_search(&a[..], &22);
         })

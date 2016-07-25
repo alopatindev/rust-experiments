@@ -168,11 +168,11 @@ mod tests {
         a
     }
 
-    const BENCH_MAXN: usize = 1000;
+    const BENCH_MAX_N: usize = 1000;
 
     #[bench]
     fn bench_merge_sort_recursive(b: &mut test::Bencher) {
-        b.iter(|| for n in 0..BENCH_MAXN {
+        b.iter(|| for n in 0..BENCH_MAX_N {
             let mut a = make_random_vec(n);
             let _ = merge_sort_recursive(&mut a);
         })
@@ -180,7 +180,7 @@ mod tests {
 
     #[bench]
     fn bench_merge_sort_iterative(b: &mut test::Bencher) {
-        b.iter(|| for n in 0..BENCH_MAXN {
+        b.iter(|| for n in 0..BENCH_MAX_N {
             let mut a = make_random_vec(n);
             let _ = merge_sort_iterative(&mut a);
         })
