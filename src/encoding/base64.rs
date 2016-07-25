@@ -1,34 +1,30 @@
-pub fn base64_encode(input: &'static str) -> String {
+pub fn base64_encode(input: String) -> String {
     let chars: &[u8] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".as_bytes();
 
-    let mut data: Vec<usize> = vec![];
-    for i in input.as_bytes().iter() {
-        data.push(*i as usize);
-    }
-
-    let data_length = input.len();
-    let pad_count = data_length % 3;
-
+    let data = string_to_vec(input.as_str());
     let mut result: Vec<u8> = vec![];
-    let mut data_index = 0;
-    while data_index < data_length {
-        let char_index = compute_char_index(&data, data_index);
+
+    let n = input.len();
+    let mut i = 0;
+    while i < n {
+        let char_index = compute_char_index(&data, i);
         let char_indexes = separate_24_to_6_bit(char_index);
 
         result.push(chars[char_indexes[0]]);
         result.push(chars[char_indexes[1]]);
 
-        if data_index + 1 < data_length {
+        if i + 1 < n {
             result.push(chars[char_indexes[2]]);
         }
 
-        if data_index + 2 < data_length {
+        if i + 2 < n {
             result.push(chars[char_indexes[3]]);
         }
 
-        data_index += 3;
+        i += 3;
     }
 
+    let pad_count = n % 3;
     if pad_count > 0 {
         for _ in pad_count..3 {
             result.push(b'=');
@@ -38,17 +34,21 @@ pub fn base64_encode(input: &'static str) -> String {
     String::from_utf8(result).unwrap()
 }
 
-fn compute_char_index(data: &Vec<usize>, index: usize) -> usize {
-    let len = data.len();
+pub fn base64_decode(input: String) -> String {
+    input.to_string() // TODO
+}
 
-    let mut char_index = data[index] << 16;
+fn compute_char_index(data: &Vec<usize>, i: usize) -> usize {
+    let n = data.len();
 
-    if index + 1 < len {
-        char_index += data[index + 1] << 8;
+    let mut char_index = data[i] << 16;
+
+    if i + 1 < n {
+        char_index += data[i + 1] << 8;
     }
 
-    if index + 2 < len {
-        char_index += data[index + 2];
+    if i + 2 < n {
+        char_index += data[i + 2];
     }
 
     char_index
@@ -63,14 +63,28 @@ fn separate_24_to_6_bit(n: usize) -> [usize; 4] {
     ]
 }
 
+fn string_to_vec(input: &str) -> Vec<usize> {
+    let mut data: Vec<usize> = vec![];
+    for i in input.as_bytes() {
+        data.push(*i as usize);
+    }
+    data
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    const RAW: &'static str = "hello rust!";
+    const ENCODED: &'static str = "aGVsbG8gcnVzdCE=";
+
     #[test]
-    fn test_base64() {
-        let a = "aGVsbG8gcnVzdCE=".to_string();
-        let b = "hello rust!";
-        assert_eq!(a, base64_encode(b))
+    fn test_base64_encode() {
+        assert_eq!(ENCODED.to_string(), base64_encode(RAW.to_string()))
+    }
+
+    #[test]
+    fn test_base64_decode() {
+        assert_eq!(RAW.to_string(), base64_decode(ENCODED.to_string()))
     }
 }
