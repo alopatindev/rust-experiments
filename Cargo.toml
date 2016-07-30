@@ -8,5 +8,6 @@ name = "rust_experiments"
 path = "src/lib.rs"
 
 [dependencies]
+getopts = "0.2"
 libc = "0.2.14"
 rand = "0.3.14"
