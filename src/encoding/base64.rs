@@ -54,8 +54,8 @@ pub fn base64_decode(input: String) -> String {
         i += 1;
 
         match c {
-            WHITESPACE => { continue; }
-            EQUALS => { break; }
+            WHITESPACE => continue,
+            EQUALS => break,
             _ => {
                 buf = (buf << 6) | (c as usize);
                 iter += 1;

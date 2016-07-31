@@ -11,8 +11,8 @@ pub fn head(input: &mut Read, output: &mut Write, limit: usize) {
         if limit_reached { break }
 
         match input.read(&mut buffer) {
-            Err(_) => { break }
-            Ok(size) if size == 0 => { break }
+            Err(_) => break,
+            Ok(size) if size == 0 => break,
             Ok(_) => {
                 output.write(&buffer).unwrap();
 
