@@ -10,8 +10,8 @@ pub fn tail(input: &mut Read, output: &mut Write, limit: usize) {
 
     loop {
         match input.read(&mut buffer) {
-            Err(_) => { break }
-            Ok(size) if size == 0 => { break }
+            Err(_) => break,
+            Ok(size) if size == 0 => break,
             Ok(_) => {
                 line_text.push(buffer[0]);
 

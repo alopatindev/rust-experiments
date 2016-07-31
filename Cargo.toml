@@ -10,4 +10,5 @@ path = "src/lib.rs"
 [dependencies]
 getopts = "0.2"
 libc = "0.2.14"
+notify = "2.6.2"
 rand = "0.3.14"
