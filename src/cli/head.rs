@@ -61,6 +61,7 @@ mod tests {
         test_head_with("hello\n\n", "hello\n\nworld\nfoo\nbar\n", 2);
         test_head_with("hello\n\nworld\n", "hello\n\nworld\nfoo\nbar\n", 3);
         test_head_with("a\n\nb\n\nc\n\nd\n\n\n", "a\n\nb\n\nc\n\nd\n\n\n", 10);
+        test_head_with("foo\n", "foo", 1);
     }
 
     fn test_head_with(expect: &str, text: &str, limit: usize) {
