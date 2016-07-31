@@ -1,8 +1,14 @@
 language: rust
 rust:
+  - stable
+  - beta
   - nightly
+matrix:
+  allow_failures:
+    - rust: stable
+    - rust: beta
 script:
-  - cargo test --verbose --color always
+  - cargo test --verbose
   - cargo run --verbose --bin hello
   - cargo run --verbose --bin head -- -h
   - cargo run --verbose --bin head -- -n100 /var/log/dpkg.log
