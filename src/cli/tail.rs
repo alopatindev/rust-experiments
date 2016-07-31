@@ -1,25 +1,30 @@
 use std::io::{Read, Write};
 use std::collections::VecDeque;
 
+const BUFFER_SIZE: usize = 4096;
 const FLUSH_AFTER_LINE: usize = 25;
 
 pub fn tail(input: &mut Read, output: &mut Write, limit: usize) {
     let mut ring: VecDeque<Vec<u8>> = VecDeque::with_capacity(limit);
-    let mut buffer = [0; 1];
+    let mut buffer = [0; BUFFER_SIZE];
     let mut line_text: Vec<u8> = vec![];
 
     loop {
         match input.read(&mut buffer) {
-            Err(_) => break,
+            Err(message) => {
+                println!("Error: {}", message);
+                break
+            }
             Ok(size) if size == 0 => break,
-            Ok(_) => {
-                line_text.push(buffer[0]);
-
-                if buffer[0] == b'\n' {
-                    ring.push_back(line_text);
-                    line_text = vec![];
-                    if ring.len() > limit {
-                        ring.pop_front();
+            Ok(size) => {
+                for ch in &buffer[0..size] {
+                    line_text.push(*ch);
+                    if *ch == b'\n' {
+                        ring.push_back(line_text);
+                        line_text = vec![];
+                        if ring.len() > limit {
+                            ring.pop_front();
+                        }
                     }
                 }
             }

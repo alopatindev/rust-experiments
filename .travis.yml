@@ -14,3 +14,4 @@ script:
   - cargo run --verbose --bin head -- -n100 /var/log/dpkg.log
   - cargo run --verbose --bin tail -- -h
   - cargo run --verbose --bin tail -- -n100 /var/log/dpkg.log
+  - cargo bench

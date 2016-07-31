@@ -33,7 +33,7 @@ fn do_work_looped(input: &str, limit: usize) -> notify::Result<()> {
 
         match rx.recv() {
             Ok(_) => {}
-            Err(message) => println!("Error: {}\n", message),
+            Err(message) => println!("Error: {}", message),
         }
     }
 }
@@ -54,7 +54,7 @@ fn main() {
     let matches = match opts.parse(&args[1..]) {
         Ok(matches) => matches,
         Err(message) => {
-            println!("Error: {}\n", message);
+            println!("Error: {}", message);
             print_usage(program, opts);
             return;
         }
@@ -72,7 +72,7 @@ fn main() {
             match text.parse::<usize>() {
                 Ok(number) => { limit = number; }
                 Err(message) => {
-                    println!("Error: {}\n", message);
+                    println!("Error: {}", message);
                     print_usage(program, opts);
                     return;
                 }

@@ -1,27 +1,40 @@
 use std::io::{Read, Write};
 
+const BUFFER_SIZE: usize = 4096;
 const FLUSH_AFTER_LINE: usize = 25;
 
 pub fn head(input: &mut Read, output: &mut Write, limit: usize) {
-    let mut buffer = [0; 1];
+    let mut buffer = [0; BUFFER_SIZE];
     let mut line = 0;
+    let mut ends_with_new_line = false;
+    let mut limit_reached;
 
     loop {
-        let limit_reached = line >= limit;
+        limit_reached = line >= limit;
         if limit_reached { break }
 
         match input.read(&mut buffer) {
-            Err(_) => break,
+            Err(message) => {
+                println!("Error: {}", message);
+                break
+            }
             Ok(size) if size == 0 => break,
-            Ok(_) => {
-                output.write(&buffer).unwrap();
+            Ok(size) => {
+                for ch in &buffer[0..size] {
+                    output.write(&[*ch]).unwrap();
 
-                if buffer[0] == b'\n' {
-                    line += 1;
-                    if line % FLUSH_AFTER_LINE == 0 {
-                        output.flush().unwrap();
+                    if *ch == b'\n' {
+                        line += 1;
+                        ends_with_new_line = true;
+                        if line % FLUSH_AFTER_LINE == 0 {
+                            output.flush().unwrap();
+                        }
+                    } else {
+                        ends_with_new_line = false;
                     }
-                    continue
+
+                    limit_reached = line >= limit;
+                    if limit_reached { break }
                 }
             }
         }
@@ -29,9 +42,8 @@ pub fn head(input: &mut Read, output: &mut Write, limit: usize) {
 
     let mut dirty = false;
 
-    if buffer[0] != b'\n' {
-        buffer[0] = b'\n';
-        output.write(&buffer).unwrap();
+    if !ends_with_new_line {
+        output.write(&[b'\n']).unwrap();
         dirty = true;
     } else if line % FLUSH_AFTER_LINE != 0 {
         dirty = true;

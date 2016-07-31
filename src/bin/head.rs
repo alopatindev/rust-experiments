@@ -32,7 +32,7 @@ fn main() {
     let matches = match opts.parse(&args[1..]) {
         Ok(matches) => { matches }
         Err(message) => {
-            println!("Error: {}\n", message);
+            println!("Error: {}", message);
             print_usage(program, opts);
             return;
         }
@@ -50,7 +50,7 @@ fn main() {
             match text.parse::<usize>() {
                 Ok(number) => { limit = number; }
                 Err(message) => {
-                    println!("Error: {}\n", message);
+                    println!("Error: {}", message);
                     print_usage(program, opts);
                     return;
                 }
