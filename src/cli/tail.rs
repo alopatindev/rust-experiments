@@ -34,9 +34,6 @@ pub fn tail(input: &mut Read, output: &mut Write, limit: usize) {
     if !line_text.is_empty() || ring.is_empty() {
         line_text.push(b'\n');
         output.write(&line_text[..]).unwrap();
-        if ring.len() > limit {
-            ring.pop_front();
-        }
         output.flush().unwrap();
     } else {
         let mut line = 0;
