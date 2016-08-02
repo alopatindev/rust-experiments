@@ -54,10 +54,10 @@ mod tests {
 
     #[test]
     fn test_list() {
-        /*let xs = LNode(1, LNode(2, LNode(3)));
-        let ys = LNode(3, LNode(2, LNode(1)));
-        assert!(xs != ys);
-        assert_eq!(xs, xs);*/
+        //let xs = LNode(1, LNode(2, LNode(3)));
+        //let ys = LNode(3, LNode(2, LNode(1)));
+        //assert!(xs != ys);
+        //assert_eq!(xs, xs);
         //assert_eq!(reverse_list(xs), ys);
     }
 }

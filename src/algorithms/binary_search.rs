@@ -87,7 +87,7 @@ mod tests {
                 tsize * N,
                 (tsize * N) as f64 / 1073741824.0,
                 N
-            );
+                );
 
             let p = libc::calloc(tsize, N);
             mem::forget(p);

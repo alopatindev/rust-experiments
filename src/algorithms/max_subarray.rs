@@ -1,21 +1,21 @@
 use std::cmp;
 
-/*fn max_sum_contiguous_naive(a: &Vec<i64>) -> i64 {
-    let n = a.len();
-    let mut sum = i64::min_value();
-    for i in 0..n {
-        for j in i..n {
-            let mut new_sum = 0;
-            for k in i..(j+1) {
-                new_sum += a[k];
-            }
-            if new_sum > sum {
-                sum = new_sum;
-            }
-        }
-    }
-    sum
-}*/
+//fn max_sum_contiguous_naive(a: &Vec<i64>) -> i64 {
+//    let n = a.len();
+//    let mut sum = i64::min_value();
+//    for i in 0..n {
+//        for j in i..n {
+//            let mut new_sum = 0;
+//            for k in i..(j+1) {
+//                new_sum += a[k];
+//            }
+//            if new_sum > sum {
+//                sum = new_sum;
+//            }
+//        }
+//    }
+//    sum
+//}
 
 // Kadane's algorithm
 pub fn max_sum_contiguous(a: &Vec<i64>) -> i64 {
