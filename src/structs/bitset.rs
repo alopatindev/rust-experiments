@@ -1,4 +1,4 @@
-use std::mem;
+use std::{fmt, mem};
 
 #[derive(Debug)]
 pub struct BitSet {
@@ -89,6 +89,10 @@ impl BitSet {
         let bit_index = (index % n) % self.bucket_size_in_bits();
         (bucket_index, bit_index)
     }
+
+    pub fn iter(&self) -> BitSetIterator {
+        BitSetIterator { set: self, index: 0 }
+    }
 }
 
 // https://stackoverflow.com/questions/30218886/how-to-implement-iterator-and-intoiterator-for-a-simple-struct/30220832#30220832
@@ -116,6 +120,43 @@ impl Iterator for BitSetIntoIterator {
             self.index = index;
         }
         next
+    }
+}
+
+pub struct BitSetIterator<'a> {
+    set: &'a BitSet,
+    index: usize,
+}
+
+impl<'a> Iterator for BitSetIterator<'a> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<usize> {
+        let next = self.set.next_set_bit(self.index);
+        if let Some(index) = next {
+            self.index = index;
+        }
+        next
+    }
+}
+
+impl fmt::Display for BitSet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut result = String::new();
+        let mut index = 0;
+
+        for i in self.iter() {
+            result.push_str(&i.to_string()[..]);
+
+            let last_item = index == self.len() - 1;
+            if !last_item {
+                result.push(',');
+            }
+
+            index += 1;
+        }
+
+        write!(f, "{{{}}}", result)
     }
 }
 
@@ -165,8 +206,8 @@ mod tests {
             assert_eq!(true, b.get(*i));
         }
 
-        for ref i in b.into_iter() {
-            assert!(h.contains(i));
+        for i in b {
+            assert!(h.contains(&i));
         }
     }
 
@@ -179,9 +220,9 @@ mod tests {
         }
 
         let mut a_iter = a.iter();
-        for ref i in b.into_iter() {
+        for i in b {
             let j = a_iter.next().unwrap();
-            assert_eq!(j, i);
+            assert_eq!(j, &i);
         }
     }
 
