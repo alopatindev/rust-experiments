@@ -14,4 +14,5 @@
 * cli/tail.rs
 * encoding/base64.rs
 * encoding/unicode.rs
+* structs/bitset.rs
 * structs/list.rs
