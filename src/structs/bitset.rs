@@ -19,24 +19,11 @@ impl BitSet {
     }
 
     pub fn next_set_bit(&self, from_index: usize) -> Option<usize> {
-        let mut index = from_index + 1;
-
-        while index < self.max_index() {
-            let (bucket_index, bit_index) = self.split_index(index);
-            let rest_of_bits = self.buckets[bucket_index] >> bit_index;
-            let found = (rest_of_bits & 1) == 1;
-            if found {
-                return Some(index);
-            } else {
-                index += 1;
-            }
-        }
-
-        None
+        self.next_bit(from_index, true)
     }
 
     pub fn next_clear_bit(&self, from_index: usize) -> Option<usize> {
-        None
+        self.next_bit(from_index, false)
     }
 
     pub fn insert(&mut self, index: usize) {
@@ -68,6 +55,10 @@ impl BitSet {
         }
     }
 
+    pub fn iter(&self) -> BitSetIterator {
+        BitSetIterator { set: self, index: 0 }
+    }
+
     fn bucket_size_in_bits(&self) -> usize {
         let bucket_size = mem::size_of::<usize>();
         bucket_size * 8
@@ -90,8 +81,22 @@ impl BitSet {
         (bucket_index, bit_index)
     }
 
-    pub fn iter(&self) -> BitSetIterator {
-        BitSetIterator { set: self, index: 0 }
+    fn next_bit(&self, from_index: usize, pattern: bool) -> Option<usize> {
+        let mut index = from_index + 1;
+
+        while index < self.max_index() {
+            let (bucket_index, bit_index) = self.split_index(index);
+            let rest_of_bits = self.buckets[bucket_index] >> bit_index;
+            let pattern = if pattern { 1 } else { 0 };
+            let found = (rest_of_bits & 1) == pattern;
+            if found {
+                return Some(index);
+            } else {
+                index += 1;
+            }
+        }
+
+        None
     }
 }
 
@@ -261,5 +266,40 @@ mod tests {
         }
 
         assert_eq!(None, b.next_set_bit(index));
+    }
+
+    #[test]
+    fn test_next_clear_bit() {
+        let a = vec![1,2,6,7];
+        let mut b: BitSet = BitSet::new();
+        for i in &a {
+            b.insert(*i);
+        }
+
+        assert_eq!(Some(3), b.next_clear_bit(0));
+        assert_eq!(Some(3), b.next_clear_bit(1));
+        assert_eq!(Some(3), b.next_clear_bit(2));
+        assert_eq!(Some(4), b.next_clear_bit(3));
+        assert_eq!(Some(5), b.next_clear_bit(4));
+        assert_eq!(Some(8), b.next_clear_bit(5));
+        assert_eq!(Some(8), b.next_clear_bit(6));
+        assert_eq!(Some(8), b.next_clear_bit(7));
+        assert_eq!(Some(9), b.next_clear_bit(8));
+
+        b.insert(9);
+        assert_eq!(Some(8), b.next_clear_bit(5));
+        assert_eq!(Some(8), b.next_clear_bit(6));
+        assert_eq!(Some(8), b.next_clear_bit(7));
+        assert_eq!(Some(10), b.next_clear_bit(8));
+
+        b.remove(1);
+        assert_eq!(Some(1), b.next_clear_bit(0));
+
+        assert_eq!(None, b.next_clear_bit(63));
+        assert_eq!(None, b.next_clear_bit(64));
+
+        b.insert(64);
+        assert_eq!(Some(65), b.next_clear_bit(63));
+        assert_eq!(Some(65), b.next_clear_bit(64));
     }
 }
