@@ -2,7 +2,7 @@ use std::{fmt, mem};
 
 #[derive(Debug)]
 pub struct BitSet {
-    buckets: Vec<usize>,  // 0th is the lowest
+    buckets: Vec<usize>,  // 0th bucket is the lowest
     size: usize,
 }
 
@@ -39,7 +39,7 @@ impl BitSet {
         None
     }
 
-    pub fn set(&mut self, index: usize) {
+    pub fn insert(&mut self, index: usize) {
         if !self.get(index) {
             self.maybe_grow_buckets(index);
             let (bucket_index, bit_index) = self.split_index(index);
@@ -49,7 +49,7 @@ impl BitSet {
         }
     }
 
-    pub fn clear(&mut self, index: usize) {
+    pub fn remove(&mut self, index: usize) {
         if self.get(index) {
             let (bucket_index, bit_index) = self.split_index(index);
             let mask = !(1usize << bit_index);
@@ -142,21 +142,11 @@ impl<'a> Iterator for BitSetIterator<'a> {
 
 impl fmt::Display for BitSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut result = String::new();
-        let mut index = 0;
-
-        for i in self.iter() {
-            result.push_str(&i.to_string()[..]);
-
-            let last_item = index == self.len() - 1;
-            if !last_item {
-                result.push(',');
-            }
-
-            index += 1;
-        }
-
-        write!(f, "{{{}}}", result)
+        let items: Vec<String> = self
+            .iter()
+            .map(|i| i.to_string())
+            .collect();
+        write!(f, "{{{}}}", items.join(","))
     }
 }
 
@@ -181,7 +171,7 @@ mod tests {
     fn test_single_item() {
         for i in 0..N {
             let mut b: BitSet = BitSet::new();
-            b.set(i);
+            b.insert(i);
             let xs: Vec<usize> = (0..N)
                 .filter(|j: &usize| b.get(*j))
                 .collect();
@@ -196,7 +186,7 @@ mod tests {
         let mut h: HashSet<usize> = HashSet::new();
         let mut i = 0;
         while i < N {
-            b.set(i);
+            b.insert(i);
             h.insert(i);
             i += 1 + (rand::random::<usize>() % N);
             assert_eq!(h.len(), b.len());
@@ -216,7 +206,7 @@ mod tests {
         let a = vec![5,55,63,64,65,70,88];
         let mut b: BitSet = BitSet::new();
         for i in &a {
-            b.set(*i);
+            b.insert(*i);
         }
 
         let mut a_iter = a.iter();
@@ -230,9 +220,9 @@ mod tests {
     fn test_set_twice() {
         let mut b: BitSet = BitSet::new();
         for i in 0..N {
-            b.set(i);
+            b.insert(i);
             assert_eq!(true, b.get(i));
-            b.set(i);
+            b.insert(i);
             assert_eq!(true, b.get(i));
         }
         assert_eq!(N, b.len());
@@ -242,15 +232,15 @@ mod tests {
     fn test_set_and_clear() {
         let mut b: BitSet = BitSet::new();
         for i in 0..N {
-            b.set(i);
+            b.insert(i);
             assert_eq!(true, b.get(i));
-            b.clear(i);
+            b.remove(i);
             assert_eq!(false, b.get(i));
         }
         assert_eq!(0, b.len());
 
         for i in 0..N {
-            b.clear(i);
+            b.remove(i);
             assert_eq!(false, b.get(i));
         }
         assert_eq!(0, b.len());
@@ -261,7 +251,7 @@ mod tests {
         let a = vec![5,55,63,64,65,70,88];
         let mut b: BitSet = BitSet::new();
         for i in &a {
-            b.set(*i);
+            b.insert(*i);
         }
 
         let mut index = 0;

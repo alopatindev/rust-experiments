@@ -16,13 +16,14 @@ fn print_list() {
 fn test_bitset() {
     let a = vec![10, 22, 55, 66, 66, 333, 1234, 6689];
     let mut set: structs::bitset::BitSet = structs::bitset::BitSet::new();
+    println!("empty set={}", set);
     for i in &a {
-        set.set(*i);
+        set.insert(*i);
     }
     println!("set={}", set);
 
     let unset = a[1];
-    set.clear(unset);
+    set.remove(unset);
     println!("set={} with unset={}", set, unset);
 }
 
