@@ -1,8 +1,8 @@
+extern crate sys_info;
 use std::{fmt, mem};
 
 include!("bitset_iterators.rs");
 
-#[derive(Debug)]
 pub struct BitSet {
     buckets: Vec<usize>,  // 0th bucket is the lowest
     size: usize,
@@ -37,7 +37,7 @@ impl BitSet {
     }
 
     pub fn insert(&mut self, index: usize) {
-        if !self.get(index) {
+        if !self.contains(index) {
             self.maybe_grow_buckets(index);
             let (bucket_index, bit_index) = self.split_index(index);
             let bit = 1usize << bit_index;
@@ -47,7 +47,7 @@ impl BitSet {
     }
 
     pub fn remove(&mut self, index: usize) {
-        if self.get(index) {
+        if self.contains(index) {
             let (bucket_index, bit_index) = self.split_index(index);
             let mask = !(1usize << bit_index);
             self.buckets[bucket_index] &= mask;
@@ -55,7 +55,7 @@ impl BitSet {
         }
     }
 
-    pub fn get(&self, index: usize) -> bool {
+    pub fn contains(&self, index: usize) -> bool {
         if index > self.max_index() {
             false
         } else {
@@ -79,8 +79,28 @@ impl BitSet {
     }
 
     fn maybe_grow_buckets(&mut self, index: usize) {
+        assert!(self.can_grow_buckets(index), "not enough memory to grow buckets");
+
         while index > self.max_index() {
             self.buckets.push(0);
+        }
+    }
+
+    fn can_grow_buckets(&self, index: usize) -> bool {
+        if index <= self.max_index() {
+            true
+        } else {
+            let info = sys_info::mem_info();
+            match info {
+                Ok(info) => {
+                    let mem_free = info.free + info.swap_free;
+                    let (bucket_index, _) = self.split_index(index);
+                    bucket_index < mem_free as usize
+                }
+                Err(_) => {
+                    true
+                }
+            }
         }
     }
 
@@ -161,7 +181,7 @@ mod tests {
     fn test_empty() {
         let b: BitSet = BitSet::new();
         let is_empty_set: bool = (0..N)
-            .filter(|i: &usize| { b.get(*i) })
+            .filter(|i: &usize| { b.contains(*i) })
             .count() == 0;
         assert!(is_empty_set);
     }
@@ -172,7 +192,7 @@ mod tests {
             let mut b: BitSet = BitSet::new();
             b.insert(i);
             let xs: Vec<usize> = (0..N)
-                .filter(|j: &usize| b.get(*j))
+                .filter(|j: &usize| b.contains(*j))
                 .collect();
             let contains_single_item_only = xs.len() == 1 && xs[0] == i;
             assert!(contains_single_item_only);
@@ -192,7 +212,7 @@ mod tests {
         }
 
         for i in &h {
-            assert_eq!(true, b.get(*i));
+            assert_eq!(true, b.contains(*i));
         }
 
         for i in b {
@@ -220,9 +240,9 @@ mod tests {
         let mut b: BitSet = BitSet::new();
         for i in 0..N {
             b.insert(i);
-            assert_eq!(true, b.get(i));
+            assert_eq!(true, b.contains(i));
             b.insert(i);
-            assert_eq!(true, b.get(i));
+            assert_eq!(true, b.contains(i));
         }
         assert_eq!(N, b.len());
     }
@@ -232,15 +252,15 @@ mod tests {
         let mut b: BitSet = BitSet::new();
         for i in 0..N {
             b.insert(i);
-            assert_eq!(true, b.get(i));
+            assert_eq!(true, b.contains(i));
             b.remove(i);
-            assert_eq!(false, b.get(i));
+            assert_eq!(false, b.contains(i));
         }
         assert_eq!(0, b.len());
 
         for i in 0..N {
             b.remove(i);
-            assert_eq!(false, b.get(i));
+            assert_eq!(false, b.contains(i));
         }
         assert_eq!(0, b.len());
     }
@@ -343,14 +363,19 @@ mod tests {
         let mut b: BitSet = BitSet::new();
         assert_eq!(None, b.next_set_bit(usize::max_value()));
 
-        //let k = usize::max_value() - 1;
-        //b.insert(k);
-        //assert_eq!(Some(k), b.next_set_bit(usize::max_value() - 2));
-        //assert_eq!(Some(k), b.previous_set_bit(usize::max_value()));
-        assert_eq!(None, b.next_set_bit(usize::max_value()));
 
         b.insert(0);
         assert_eq!(Some(0), b.previous_set_bit(1));
         assert_eq!(None, b.previous_set_bit(0));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_out_of_memory() {
+        let mut b: BitSet = BitSet::new();
+        let k = usize::max_value() - 1;
+        b.insert(k);
+        assert_eq!(None, b.next_set_bit(usize::max_value() - 1));
+        assert_eq!(None, b.next_set_bit(usize::max_value()));
     }
 }
