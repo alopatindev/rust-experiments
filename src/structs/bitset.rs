@@ -173,7 +173,6 @@ impl fmt::Display for BitSet {
 mod tests {
     use super::*;
     use std::collections::HashSet;
-    extern crate rand;
 
     const N: usize = 2048;
 
@@ -196,27 +195,6 @@ mod tests {
                 .collect();
             let contains_single_item_only = xs.len() == 1 && xs[0] == i;
             assert!(contains_single_item_only);
-        }
-    }
-
-    #[test]
-    fn test_random_items() {
-        let mut b: BitSet = BitSet::new();
-        let mut h: HashSet<usize> = HashSet::new();
-        let mut i = 0;
-        while i < N {
-            b.insert(i);
-            h.insert(i);
-            i += 1 + (rand::random::<usize>() % N);
-            assert_eq!(h.len(), b.len());
-        }
-
-        for i in &h {
-            assert_eq!(true, b.contains(*i));
-        }
-
-        for i in b {
-            assert!(h.contains(&i));
         }
     }
 
@@ -377,5 +355,46 @@ mod tests {
         b.insert(k);
         assert_eq!(None, b.next_set_bit(usize::max_value() - 1));
         assert_eq!(None, b.next_set_bit(usize::max_value()));
+    }
+
+    quickcheck! {
+        fn test_operator_brackets(xs: Vec<usize>) -> bool {
+            let mut b: BitSet = BitSet::new();
+
+            for i in &xs {
+                b.insert(*i);
+                if !b.contains(*i) {
+                    return false
+                }
+            }
+
+            true
+        }
+
+        fn test_random_items(xs: Vec<usize>) -> bool {
+            let mut b: BitSet = BitSet::new();
+            let mut h: HashSet<usize> = HashSet::new();
+            for i in &xs {
+                b.insert(*i);
+                h.insert(*i);
+                if h.len() != b.len() {
+                    return false
+                }
+            }
+
+            for i in &h {
+                if !b.contains(*i) {
+                    return false
+                }
+            }
+
+            for i in b {
+                if !h.contains(&i) {
+                    return false
+                }
+            }
+
+            return true
+        }
     }
 }
