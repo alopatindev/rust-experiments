@@ -32,11 +32,21 @@ pub struct BitSetIterator<'a> {
 impl<'a> Iterator for BitSetIterator<'a> {
     type Item = usize;
 
-    fn next(&mut self) -> Option<usize> {
+    fn next(&mut self) -> Option<Self::Item> {
         let next = self.set.next_set_bit(self.index);
         if let Some(index) = next {
             self.index = index;
         }
         next
+    }
+}
+
+impl<'a> DoubleEndedIterator for BitSetIterator<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let previous = self.set.previous_set_bit(self.index);
+        if let Some(index) = previous {
+            self.index = index;
+        }
+        previous
     }
 }

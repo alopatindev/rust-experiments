@@ -214,6 +214,21 @@ mod tests {
     }
 
     #[test]
+    fn into_reversed_iter() {
+        let a = vec![5,55,63,64,65,70,88];
+        let mut b: BitSet = BitSet::new();
+        for i in &a {
+            b.insert(*i);
+        }
+
+        let mut a_iter = a.iter().rev();
+        for i in b.iter().rev() {
+            let j = a_iter.next_back().unwrap();
+            assert_eq!(j, &i);
+        }
+    }
+
+    #[test]
     fn set_twice() {
         let mut b: BitSet = BitSet::new();
         for i in 0..N {
