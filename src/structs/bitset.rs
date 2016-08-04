@@ -1,5 +1,7 @@
 use std::{fmt, mem};
 
+include!("bitset_iterators.rs");
+
 #[derive(Debug)]
 pub struct BitSet {
     buckets: Vec<usize>,  // 0th bucket is the lowest
@@ -24,6 +26,14 @@ impl BitSet {
 
     pub fn next_clear_bit(&self, from_index: usize) -> Option<usize> {
         self.next_bit(from_index, false)
+    }
+
+    pub fn previous_set_bit(&self, from_index: usize) -> Option<usize> {
+        self.previous_bit(from_index, true)
+    }
+
+    pub fn previous_clear_bit(&self, from_index: usize) -> Option<usize> {
+        self.previous_bit(from_index, false)
     }
 
     pub fn insert(&mut self, index: usize) {
@@ -82,66 +92,50 @@ impl BitSet {
     }
 
     fn next_bit(&self, from_index: usize, pattern: bool) -> Option<usize> {
-        let mut index = from_index + 1;
-
-        while index < self.max_index() {
-            let (bucket_index, bit_index) = self.split_index(index);
-            let rest_of_bits = self.buckets[bucket_index] >> bit_index;
+        if from_index < usize::max_value() {
             let pattern = if pattern { 1 } else { 0 };
-            let found = (rest_of_bits & 1) == pattern;
-            if found {
-                return Some(index);
-            } else {
-                index += 1;
+
+            let mut index = from_index + 1;
+            loop {
+                let (bucket_index, bit_index) = self.split_index(index);
+                if bucket_index >= self.buckets.len() {
+                    break
+                }
+                let rest_of_bits = self.buckets[bucket_index] >> bit_index;
+                let found = (rest_of_bits & 1) == pattern;
+                if found {
+                    return Some(index)
+                } else if index < self.max_index() {
+                    index += 1;
+                } else {
+                    break
+                }
             }
         }
 
         None
     }
-}
 
-// https://stackoverflow.com/questions/30218886/how-to-implement-iterator-and-intoiterator-for-a-simple-struct/30220832#30220832
+    fn previous_bit(&self, from_index: usize, pattern: bool) -> Option<usize> {
+        if from_index > 0 {
+            let pattern = if pattern { 1 } else { 0 };
 
-impl IntoIterator for BitSet {
-    type Item = usize;
-    type IntoIter = BitSetIntoIterator;
-
-    fn into_iter(self) -> Self::IntoIter {
-        BitSetIntoIterator { set: self, index: 0 }
-    }
-}
-
-pub struct BitSetIntoIterator {
-    set: BitSet,
-    index: usize,
-}
-
-impl Iterator for BitSetIntoIterator {
-    type Item = usize;
-
-    fn next(&mut self) -> Option<usize> {
-        let next = self.set.next_set_bit(self.index);
-        if let Some(index) = next {
-            self.index = index;
+            let mut index = from_index - 1;
+            loop {
+                let (bucket_index, bit_index) = self.split_index(index);
+                let rest_of_bits = self.buckets[bucket_index] >> bit_index;
+                let found = rest_of_bits & 1 == pattern;
+                if found {
+                    return Some(index)
+                } else if index > 0 {
+                    index -= 1;
+                } else {
+                    break
+                }
+            }
         }
-        next
-    }
-}
 
-pub struct BitSetIterator<'a> {
-    set: &'a BitSet,
-    index: usize,
-}
-
-impl<'a> Iterator for BitSetIterator<'a> {
-    type Item = usize;
-
-    fn next(&mut self) -> Option<usize> {
-        let next = self.set.next_set_bit(self.index);
-        if let Some(index) = next {
-            self.index = index;
-        }
-        next
+        None
     }
 }
 
@@ -266,6 +260,7 @@ mod tests {
         }
 
         assert_eq!(None, b.next_set_bit(index));
+        assert_eq!(None, b.next_set_bit(usize::max_value()));
     }
 
     #[test]
@@ -301,5 +296,61 @@ mod tests {
         b.insert(64);
         assert_eq!(Some(65), b.next_clear_bit(63));
         assert_eq!(Some(65), b.next_clear_bit(64));
+    }
+
+    #[test]
+    fn test_previous_set_bit() {
+        let a = vec![5,55,63,64,65,70,88];
+        let mut b: BitSet = BitSet::new();
+        for i in &a {
+            b.insert(*i);
+        }
+
+        let mut index = 88;
+        for i in a.iter().rev().skip(1) {
+            assert_eq!(*i, b.previous_set_bit(index).unwrap());
+            index = *i;
+        }
+
+        assert_eq!(None, b.previous_set_bit(index));
+    }
+
+    #[test]
+    fn test_previous_clear_bit() {
+        let a = vec![1,2,6,7];
+        let mut b: BitSet = BitSet::new();
+        for i in &a {
+            b.insert(*i);
+        }
+
+        assert_eq!(Some(8), b.previous_clear_bit(9));
+        assert_eq!(Some(5), b.previous_clear_bit(8));
+        assert_eq!(Some(5), b.previous_clear_bit(7));
+        assert_eq!(Some(5), b.previous_clear_bit(6));
+        assert_eq!(Some(3), b.previous_clear_bit(4));
+        assert_eq!(Some(0), b.previous_clear_bit(3));
+        assert_eq!(Some(0), b.previous_clear_bit(2));
+        assert_eq!(Some(0), b.previous_clear_bit(1));
+        assert_eq!(None, b.previous_clear_bit(0));
+
+        b.insert(0);
+        assert_eq!(None, b.previous_clear_bit(1));
+        assert_eq!(None, b.previous_clear_bit(0));
+    }
+
+    #[test]
+    fn test_bounds() {
+        let mut b: BitSet = BitSet::new();
+        assert_eq!(None, b.next_set_bit(usize::max_value()));
+
+        //let k = usize::max_value() - 1;
+        //b.insert(k);
+        //assert_eq!(Some(k), b.next_set_bit(usize::max_value() - 2));
+        //assert_eq!(Some(k), b.previous_set_bit(usize::max_value()));
+        assert_eq!(None, b.next_set_bit(usize::max_value()));
+
+        b.insert(0);
+        assert_eq!(Some(0), b.previous_set_bit(1));
+        assert_eq!(None, b.previous_set_bit(0));
     }
 }
