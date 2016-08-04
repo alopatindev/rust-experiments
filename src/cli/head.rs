@@ -60,23 +60,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_head() {
-        test_head_with("a\nb\n", "a\nb\nc\nd\n", 2);
-        test_head_with("a\nb\nc\nd\n", "a\nb\nc\nd\n", 200);
-        test_head_with("a\n", "a\nb\nc\nd\n", 1);
-        test_head_with("\n", "a\nb\nc\nd\n", 0);
-        test_head_with("\n", "", 10);
-        test_head_with("a\nb\nc\nd\n", "a\nb\nc\nd\n", 4);
-        test_head_with("a\nb\nc\nd\n", "a\nb\nc\nd\n", 5);
-        test_head_with("\na\nb\nc\n", "\na\nb\nc\nd\n", 4);
-        test_head_with("hello\nworld\n", "hello\nworld\nfoo\nbar\n", 2);
-        test_head_with("hello\n\n", "hello\n\nworld\nfoo\nbar\n", 2);
-        test_head_with("hello\n\nworld\n", "hello\n\nworld\nfoo\nbar\n", 3);
-        test_head_with("a\n\nb\n\nc\n\nd\n\n\n", "a\n\nb\n\nc\n\nd\n\n\n", 10);
-        test_head_with("foo\n", "foo", 1);
+    fn simple() {
+        head_assert("a\nb\n", "a\nb\nc\nd\n", 2);
+        head_assert("a\nb\nc\nd\n", "a\nb\nc\nd\n", 200);
+        head_assert("a\n", "a\nb\nc\nd\n", 1);
+        head_assert("\n", "a\nb\nc\nd\n", 0);
+        head_assert("\n", "", 10);
+        head_assert("a\nb\nc\nd\n", "a\nb\nc\nd\n", 4);
+        head_assert("a\nb\nc\nd\n", "a\nb\nc\nd\n", 5);
+        head_assert("\na\nb\nc\n", "\na\nb\nc\nd\n", 4);
+        head_assert("hello\nworld\n", "hello\nworld\nfoo\nbar\n", 2);
+        head_assert("hello\n\n", "hello\n\nworld\nfoo\nbar\n", 2);
+        head_assert("hello\n\nworld\n", "hello\n\nworld\nfoo\nbar\n", 3);
+        head_assert("a\n\nb\n\nc\n\nd\n\n\n", "a\n\nb\n\nc\n\nd\n\n\n", 10);
+        head_assert("foo\n", "foo", 1);
     }
 
-    fn test_head_with(expect: &str, text: &str, limit: usize) {
+    fn head_assert(expect: &str, text: &str, limit: usize) {
         let input_take = text.as_bytes().take(text.len() as u64);
         let mut input = BufReader::new(input_take);
 

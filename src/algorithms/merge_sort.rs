@@ -111,10 +111,10 @@ mod tests {
     extern crate rand;
 
     #[test]
-    fn test_merge_sort() {
+    fn simple() {
         type T = i32;
 
-        fn test_merge_sort_impl(func: fn(&mut Vec<T>) -> &mut Vec<T>) {
+        fn simple_impl(func: fn(&mut Vec<T>) -> &mut Vec<T>) {
             let merge_sort = || {
                 let mut a: Vec<i32> = vec![4,2,8,9,3,1,0,5,6,7];
                 let b: Vec<i32> = (0..10).collect();
@@ -140,12 +140,12 @@ mod tests {
             merge_sort_single();
         }
 
-        test_merge_sort_impl(merge_sort_iterative);
-        test_merge_sort_impl(merge_sort_recursive);
+        simple_impl(merge_sort_iterative);
+        simple_impl(merge_sort_recursive);
     }
 
     #[test]
-    fn test_merge_even() {
+    fn merge_even() {
         let mut a = vec![6,7,1,2];
         let b = vec![1,2,6,7];
         let n = a.len();
@@ -153,7 +153,7 @@ mod tests {
     }
 
     #[test]
-    fn test_merge_odd() {
+    fn merge_odd() {
         let mut a = vec![3,1,2];
         let b = vec![1,2,3];
         let n = a.len();
@@ -171,7 +171,7 @@ mod tests {
     const BENCH_MAX_N: usize = 1000;
 
     #[bench]
-    fn bench_merge_sort_recursive(b: &mut test::Bencher) {
+    fn bench_recursive(b: &mut test::Bencher) {
         b.iter(|| for n in 0..BENCH_MAX_N {
             let mut a = make_random_vec(n);
             let _ = merge_sort_recursive(&mut a);
@@ -179,7 +179,7 @@ mod tests {
     }
 
     #[bench]
-    fn bench_merge_sort_iterative(b: &mut test::Bencher) {
+    fn bench_iterative(b: &mut test::Bencher) {
         b.iter(|| for n in 0..BENCH_MAX_N {
             let mut a = make_random_vec(n);
             let _ = merge_sort_iterative(&mut a);

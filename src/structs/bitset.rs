@@ -177,7 +177,7 @@ mod tests {
     const N: usize = 2048;
 
     #[test]
-    fn test_empty() {
+    fn empty() {
         let b: BitSet = BitSet::new();
         let is_empty_set: bool = (0..N)
             .filter(|i: &usize| { b.contains(*i) })
@@ -186,7 +186,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_item() {
+    fn single_item() {
         for i in 0..N {
             let mut b: BitSet = BitSet::new();
             b.insert(i);
@@ -199,7 +199,7 @@ mod tests {
     }
 
     #[test]
-    fn test_into_iter() {
+    fn into_iter() {
         let a = vec![5,55,63,64,65,70,88];
         let mut b: BitSet = BitSet::new();
         for i in &a {
@@ -214,7 +214,7 @@ mod tests {
     }
 
     #[test]
-    fn test_set_twice() {
+    fn set_twice() {
         let mut b: BitSet = BitSet::new();
         for i in 0..N {
             b.insert(i);
@@ -226,7 +226,7 @@ mod tests {
     }
 
     #[test]
-    fn test_set_and_clear() {
+    fn set_and_clear() {
         let mut b: BitSet = BitSet::new();
         for i in 0..N {
             b.insert(i);
@@ -244,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn test_next_set_bit() {
+    fn next_set_bit() {
         let a = vec![5,55,63,64,65,70,88];
         let mut b: BitSet = BitSet::new();
         for i in &a {
@@ -262,7 +262,7 @@ mod tests {
     }
 
     #[test]
-    fn test_next_clear_bit() {
+    fn next_clear_bit() {
         let a = vec![1,2,6,7];
         let mut b: BitSet = BitSet::new();
         for i in &a {
@@ -297,7 +297,7 @@ mod tests {
     }
 
     #[test]
-    fn test_previous_set_bit() {
+    fn previous_set_bit() {
         let a = vec![5,55,63,64,65,70,88];
         let mut b: BitSet = BitSet::new();
         for i in &a {
@@ -314,7 +314,7 @@ mod tests {
     }
 
     #[test]
-    fn test_previous_clear_bit() {
+    fn previous_clear_bit() {
         let a = vec![1,2,6,7];
         let mut b: BitSet = BitSet::new();
         for i in &a {
@@ -337,7 +337,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bounds() {
+    fn bounds() {
         let mut b: BitSet = BitSet::new();
         assert_eq!(None, b.next_set_bit(usize::max_value()));
 
@@ -349,7 +349,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_out_of_memory() {
+    fn out_of_memory() {
         let mut b: BitSet = BitSet::new();
         let k = usize::max_value() - 1;
         b.insert(k);
@@ -358,7 +358,7 @@ mod tests {
     }
 
     quickcheck! {
-        fn test_operator_brackets(xs: Vec<usize>) -> bool {
+        fn random_contains(xs: Vec<usize>) -> bool {
             let mut b: BitSet = BitSet::new();
 
             for i in &xs {
@@ -371,7 +371,7 @@ mod tests {
             true
         }
 
-        fn test_random_items(xs: Vec<usize>) -> bool {
+        fn random_items(xs: Vec<usize>) -> bool {
             let mut b: BitSet = BitSet::new();
             let mut h: HashSet<usize> = HashSet::new();
             for i in &xs {

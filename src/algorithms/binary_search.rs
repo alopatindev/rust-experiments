@@ -33,7 +33,7 @@ mod tests {
     extern crate rand;
 
     #[test]
-    fn test_binary_search() {
+    fn simple() {
         let a: Vec<i32> = vec![10, 22, 55, 66, 66, 333, 1234, 6689];
 
         assert_eq!(binary_search(&a, &55), Some(2));
@@ -56,7 +56,7 @@ mod tests {
     }
 
     #[test]
-    fn test_binary_search_empty() {
+    fn empty() {
         let a: Vec<i32> = vec![];
         assert_eq!(binary_search(&a, &1), None);
     }
@@ -64,7 +64,7 @@ mod tests {
     /// works on x86_64 Linux after `echo -n 1 > /proc/sys/vm/overcommit_memory`
     #[test]
     #[ignore]
-    fn test_binary_search_heavy() {
+    fn heavy() {
         extern crate libc;
         use std::{mem, ptr};
 
@@ -132,7 +132,7 @@ mod tests {
     const BENCH_MAX_N: usize = 1000;
 
     #[bench]
-    fn bench_binary_search_std(b: &mut test::Bencher) {
+    fn bench_std(b: &mut test::Bencher) {
         b.iter(|| for n in 0..BENCH_MAX_N {
             let a = make_random_sorted_vec(n);
             let _ = a.binary_search(&22);
@@ -140,7 +140,7 @@ mod tests {
     }
 
     #[bench]
-    fn bench_binary_search(b: &mut test::Bencher) {
+    fn bench_simple(b: &mut test::Bencher) {
         b.iter(|| for n in 0..BENCH_MAX_N {
             let a = make_random_sorted_vec(n);
             let _ = binary_search(&a[..], &22);

@@ -144,12 +144,12 @@ mod tests {
     const ENCODED: &'static str = "SGVsbG8gUnVzdCEg0J/RgNC40LLQtdGCINCg0LDRgdGCIQo=";
 
     #[test]
-    fn test_base64_encode() {
+    fn encode() {
         assert_eq!(ENCODED.to_string(), base64_encode(RAW.to_string()))
     }
 
     #[test]
-    fn test_base64_decode() {
+    fn decode() {
         assert_eq!(RAW.to_string(), base64_decode(ENCODED.to_string()))
     }
 }

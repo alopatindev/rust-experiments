@@ -58,24 +58,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tail() {
-        test_tail_with("c\nd\n", "a\nb\nc\nd\n", 2);
-        test_tail_with("a\nb\nc\nd\n", "a\nb\nc\nd\n", 200);
-        test_tail_with("d\n", "a\nb\nc\nd\n", 1);
-        test_tail_with("\n", "a\nb\nc\nd\n", 0);
-        test_tail_with("\n", "", 10);
-        test_tail_with("a\nb\nc\nd\n", "a\nb\nc\nd\n", 4);
-        test_tail_with("a\nb\nc\nd\n", "a\nb\nc\nd\n", 5);
-        test_tail_with("a\nb\nc\nd\n", "\na\nb\nc\nd\n", 4);
-        test_tail_with("b\nc\nd\n\n", "\na\nb\nc\nd\n\n", 4);
-        test_tail_with("foo\nbar\n", "hello\nworld\nfoo\nbar\n", 2);
-        test_tail_with("foo\nbar\n", "hello\n\nworld\nfoo\nbar\n", 2);
-        test_tail_with("foo\n\nbar\n", "hello\n\nworld\nfoo\n\nbar\n", 3);
-        test_tail_with("a\n\nb\n\nc\n\nd\n\n\n", "a\n\nb\n\nc\n\nd\n\n\n", 10);
-        test_tail_with("foo\n", "foo", 1);
+    fn simple() {
+        tail_assert("c\nd\n", "a\nb\nc\nd\n", 2);
+        tail_assert("a\nb\nc\nd\n", "a\nb\nc\nd\n", 200);
+        tail_assert("d\n", "a\nb\nc\nd\n", 1);
+        tail_assert("\n", "a\nb\nc\nd\n", 0);
+        tail_assert("\n", "", 10);
+        tail_assert("a\nb\nc\nd\n", "a\nb\nc\nd\n", 4);
+        tail_assert("a\nb\nc\nd\n", "a\nb\nc\nd\n", 5);
+        tail_assert("a\nb\nc\nd\n", "\na\nb\nc\nd\n", 4);
+        tail_assert("b\nc\nd\n\n", "\na\nb\nc\nd\n\n", 4);
+        tail_assert("foo\nbar\n", "hello\nworld\nfoo\nbar\n", 2);
+        tail_assert("foo\nbar\n", "hello\n\nworld\nfoo\nbar\n", 2);
+        tail_assert("foo\n\nbar\n", "hello\n\nworld\nfoo\n\nbar\n", 3);
+        tail_assert("a\n\nb\n\nc\n\nd\n\n\n", "a\n\nb\n\nc\n\nd\n\n\n", 10);
+        tail_assert("foo\n", "foo", 1);
     }
 
-    fn test_tail_with(expect: &str, text: &str, limit: usize) {
+    fn tail_assert(expect: &str, text: &str, limit: usize) {
         let input_take = text.as_bytes().take(text.len() as u64);
         let mut input = BufReader::new(input_take);
 

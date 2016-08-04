@@ -53,7 +53,7 @@ mod tests {
     //use super::*;
 
     #[test]
-    fn test_list() {
+    fn simple() {
         //let xs = LNode(1, LNode(2, LNode(3)));
         //let ys = LNode(3, LNode(2, LNode(1)));
         //assert!(xs != ys);

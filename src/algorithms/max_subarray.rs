@@ -59,7 +59,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_max_sum_non_contiguous() {
+    fn non_contiguous() {
         let a: Vec<i64> = vec![1,2,-4,3];
         assert_eq!(1+2+3, max_sum_non_contiguous(&a));
 
@@ -68,13 +68,13 @@ mod tests {
     }
 
     #[test]
-    fn test_max_sum_contiguous() {
+    fn contiguous() {
         let a: Vec<i64> = vec![1,2,-4,3,5,6,1,-5];
         assert_eq!(3+5+6+1, max_sum_contiguous(&a));
     }
 
     #[test]
-    fn test_all() {
+    fn simple() {
         let a: Vec<i64> = vec![1,2,3,4];
         assert_eq!(10, max_sum_contiguous(&a));
         assert_eq!(10, max_sum_non_contiguous(&a));

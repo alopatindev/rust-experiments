@@ -62,25 +62,25 @@ mod tests {
         use super::super::*;
 
         #[test]
-        fn test_ascii() {
+        fn ascii() {
             let (utf8, utf16) = make_strings("Hello, Rust!");
             assert_eq!(utf8, to_utf8(&utf16[..]));
         }
 
         #[test]
-        fn test_russian() {
+        fn russian() {
             let (utf8, utf16) = make_strings("Привет, Раст!");
             assert_eq!(utf8, to_utf8(&utf16[..]));
         }
 
         #[test]
-        fn test_japanese() {
+        fn japanese() {
             let (utf8, utf16) = make_strings("こんにちは、さび");
             assert_eq!(utf8, to_utf8(&utf16[..]));
         }
 
         #[test]
-        fn test_bounds() {
+        fn bounds() {
             let (utf8, utf16) = make_strings("\u{0000}\u{007f}");
             assert_eq!(utf8, to_utf8(&utf16[..]));
 
@@ -97,25 +97,25 @@ mod tests {
         use super::super::*;
 
         #[test]
-        fn test_ascii() {
+        fn ascii() {
             let (utf8, utf16) = make_strings("Hello, Rust!");
             assert_eq!(utf16, to_utf16(&utf8[..]));
         }
 
         #[test]
-        fn test_russian() {
+        fn russian() {
             let (utf8, utf16) = make_strings("Привет, Раст!");
             assert_eq!(utf16, to_utf16(&utf8[..]));
         }
 
         #[test]
-        fn test_japanese() {
+        fn japanese() {
             let (utf8, utf16) = make_strings("こんにちは、さび");
             assert_eq!(utf16, to_utf16(&utf8[..]));
         }
 
         #[test]
-        fn test_bounds() {
+        fn bounds() {
             let (utf8, utf16) = make_strings("\u{0000}\u{007f}");
             assert_eq!(utf16, to_utf16(&utf8[..]));
 
