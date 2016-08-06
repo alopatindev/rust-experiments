@@ -15,8 +15,8 @@ impl<'a> Iterator for NodeIterator<'a> {
             Some(node) => {
                 self.current = node.next;
                 Some(node.data)
-            },
-            None => return None
+            }
+            None => return None,
         };
         result
     }
@@ -24,7 +24,10 @@ impl<'a> Iterator for NodeIterator<'a> {
 
 impl<'a> Node<'a> {
     pub fn new(data: i32, next: Option<&'a Node<'a>>) -> Self {
-        Node { data: data, next: next }
+        Node {
+            data: data,
+            next: next,
+        }
     }
 
     pub fn push(&'a self, data: i32) -> Node<'a> {
@@ -50,14 +53,14 @@ impl<'a> Node<'a> {
 
 #[cfg(test)]
 mod tests {
-    //use super::*;
+    // use super::*;
 
     #[test]
     fn simple() {
-        //let xs = LNode(1, LNode(2, LNode(3)));
-        //let ys = LNode(3, LNode(2, LNode(1)));
-        //assert!(xs != ys);
-        //assert_eq!(xs, xs);
-        //assert_eq!(reverse_list(xs), ys);
+        // let xs = LNode(1, LNode(2, LNode(3)));
+        // let ys = LNode(3, LNode(2, LNode(1)));
+        // assert!(xs != ys);
+        // assert_eq!(xs, xs);
+        // assert_eq!(reverse_list(xs), ys);
     }
 }

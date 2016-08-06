@@ -1,7 +1,7 @@
 pub fn binary_search<T: PartialOrd>(a: &[T], pattern: &T) -> Option<usize> {
     let n = a.len();
     if n == 0 {
-        return None
+        return None;
     }
 
     let last = n - 1;
@@ -14,7 +14,8 @@ pub fn binary_search<T: PartialOrd>(a: &[T], pattern: &T) -> Option<usize> {
         let mid = low + (high - low) / 2;
         if a[mid] == *pattern {
             return Some(mid);
-        } if a[mid] > *pattern && mid > 0 {
+        }
+        if a[mid] > *pattern && mid > 0 {
             high = mid - 1;
         } else if a[mid] < *pattern && mid < last {
             low = mid + 1;
@@ -82,12 +83,10 @@ mod tests {
         let offset2: isize = (last_byte_offset - offset0) as isize;
 
         unsafe {
-            println!(
-                "trying to allocate {} bytes (~{} GiB) for {} items",
-                tsize * N,
-                (tsize * N) as f64 / 1073741824.0,
-                N
-                );
+            println!("trying to allocate {} bytes (~{} GiB) for {} items",
+                     tsize * N,
+                     (tsize * N) as f64 / 1073741824.0,
+                     N);
 
             let p = libc::calloc(tsize, N);
             mem::forget(p);
@@ -133,17 +132,21 @@ mod tests {
 
     #[bench]
     fn bench_std(b: &mut test::Bencher) {
-        b.iter(|| for n in 0..BENCH_MAX_N {
-            let a = make_random_sorted_vec(n);
-            let _ = a.binary_search(&22);
+        b.iter(|| {
+            for n in 0..BENCH_MAX_N {
+                let a = make_random_sorted_vec(n);
+                let _ = a.binary_search(&22);
+            }
         })
     }
 
     #[bench]
     fn bench_simple(b: &mut test::Bencher) {
-        b.iter(|| for n in 0..BENCH_MAX_N {
-            let a = make_random_sorted_vec(n);
-            let _ = binary_search(&a[..], &22);
+        b.iter(|| {
+            for n in 0..BENCH_MAX_N {
+                let a = make_random_sorted_vec(n);
+                let _ = binary_search(&a[..], &22);
+            }
         })
     }
 }

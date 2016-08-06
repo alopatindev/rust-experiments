@@ -49,7 +49,9 @@ fn main() {
     let mut opts = Options::new();
 
     opts.optopt(LINES_OPTION, "lines", "output last K lines", "K");
-    opts.optflag(FOLLOW_OPTION, "follow", "output appended data as the file grows");
+    opts.optflag(FOLLOW_OPTION,
+                 "follow",
+                 "output appended data as the file grows");
     opts.optflag(HELP_OPTION, "help", "print this help menu");
     let matches = match opts.parse(&args[1..]) {
         Ok(matches) => matches,
@@ -70,7 +72,9 @@ fn main() {
     if matches.opt_present(LINES_OPTION) {
         if let Some(text) = matches.opt_str(LINES_OPTION) {
             match text.parse::<usize>() {
-                Ok(number) => { limit = number; }
+                Ok(number) => {
+                    limit = number;
+                }
                 Err(message) => {
                     println!("Error: {}", message);
                     print_usage(program, opts);

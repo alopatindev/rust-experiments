@@ -13,7 +13,7 @@ pub fn tail(input: &mut Read, output: &mut Write, limit: usize) {
         match input.read(&mut buffer) {
             Err(message) => {
                 println!("Error: {}", message);
-                break
+                break;
             }
             Ok(size) if size == 0 => break,
             Ok(size) => {

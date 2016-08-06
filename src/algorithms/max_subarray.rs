@@ -1,6 +1,6 @@
 use std::cmp;
 
-//fn max_sum_contiguous_naive(a: &Vec<i64>) -> i64 {
+// fn max_sum_contiguous_naive(a: &Vec<i64>) -> i64 {
 //    let n = a.len();
 //    let mut sum = i64::min_value();
 //    for i in 0..n {
@@ -15,12 +15,12 @@ use std::cmp;
 //        }
 //    }
 //    sum
-//}
+// }
 
 // Kadane's algorithm
 pub fn max_sum_contiguous(a: &Vec<i64>) -> i64 {
     if a.is_empty() {
-        return 0
+        return 0;
     }
 
     let mut prev_arr_sum = a[0];
@@ -37,13 +37,13 @@ pub fn max_sum_contiguous(a: &Vec<i64>) -> i64 {
 
 pub fn max_sum_non_contiguous(a: &Vec<i64>) -> i64 {
     let mut b = a.clone();
-    b.sort_by(|a,b| b.cmp(a));
+    b.sort_by(|a, b| b.cmp(a));
     let mut sum = 0;
     for i in 0..b.len() {
         let x = b[i];
         if x <= 0 {
             if i == 0 {
-                return x
+                return x;
             } else {
                 break;
             }
@@ -60,26 +60,26 @@ mod tests {
 
     #[test]
     fn non_contiguous() {
-        let a: Vec<i64> = vec![1,2,-4,3];
-        assert_eq!(1+2+3, max_sum_non_contiguous(&a));
+        let a: Vec<i64> = vec![1, 2, -4, 3];
+        assert_eq!(1 + 2 + 3, max_sum_non_contiguous(&a));
 
-        let a: Vec<i64> = vec![-1,-2,-3];
+        let a: Vec<i64> = vec![-1, -2, -3];
         assert_eq!(-1, max_sum_non_contiguous(&a));
     }
 
     #[test]
     fn contiguous() {
-        let a: Vec<i64> = vec![1,2,-4,3,5,6,1,-5];
-        assert_eq!(3+5+6+1, max_sum_contiguous(&a));
+        let a: Vec<i64> = vec![1, 2, -4, 3, 5, 6, 1, -5];
+        assert_eq!(3 + 5 + 6 + 1, max_sum_contiguous(&a));
     }
 
     #[test]
     fn simple() {
-        let a: Vec<i64> = vec![1,2,3,4];
+        let a: Vec<i64> = vec![1, 2, 3, 4];
         assert_eq!(10, max_sum_contiguous(&a));
         assert_eq!(10, max_sum_non_contiguous(&a));
 
-        let a: Vec<i64> = vec![2,-1,2,3,4,-5];
+        let a: Vec<i64> = vec![2, -1, 2, 3, 4, -5];
         assert_eq!(10, max_sum_contiguous(&a));
         assert_eq!(11, max_sum_non_contiguous(&a));
 
@@ -91,15 +91,15 @@ mod tests {
         assert_eq!(1, max_sum_contiguous(&a));
         assert_eq!(1, max_sum_non_contiguous(&a));
 
-        let a: Vec<i64> = vec![-1,-2,-3,-4,-5,-6];
+        let a: Vec<i64> = vec![-1, -2, -3, -4, -5, -6];
         assert_eq!(-1, max_sum_contiguous(&a));
         assert_eq!(-1, max_sum_non_contiguous(&a));
 
-        let a: Vec<i64> = vec![1,-2];
+        let a: Vec<i64> = vec![1, -2];
         assert_eq!(1, max_sum_contiguous(&a));
         assert_eq!(1, max_sum_non_contiguous(&a));
 
-        let a: Vec<i64> = vec![1,2,3];
+        let a: Vec<i64> = vec![1, 2, 3];
         assert_eq!(6, max_sum_contiguous(&a));
         assert_eq!(6, max_sum_non_contiguous(&a));
 
@@ -107,15 +107,15 @@ mod tests {
         assert_eq!(-10, max_sum_contiguous(&a));
         assert_eq!(-10, max_sum_non_contiguous(&a));
 
-        let a: Vec<i64> = vec![1,-1,-1,-1,-1,5];
+        let a: Vec<i64> = vec![1, -1, -1, -1, -1, 5];
         assert_eq!(5, max_sum_contiguous(&a));
         assert_eq!(6, max_sum_non_contiguous(&a));
 
-        let a: Vec<i64> = vec![1,2,3,4];
+        let a: Vec<i64> = vec![1, 2, 3, 4];
         assert_eq!(10, max_sum_contiguous(&a));
         assert_eq!(10, max_sum_non_contiguous(&a));
 
-        let a: Vec<i64> = vec![-100,-1];
+        let a: Vec<i64> = vec![-100, -1];
         assert_eq!(-1, max_sum_contiguous(&a));
         assert_eq!(-1, max_sum_non_contiguous(&a));
     }

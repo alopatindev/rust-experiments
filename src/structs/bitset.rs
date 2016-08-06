@@ -4,7 +4,7 @@ use std::{fmt, mem};
 include!("bitset_iterators.rs");
 
 pub struct BitSet {
-    buckets: Vec<usize>,  // 0th bucket is the lowest
+    buckets: Vec<usize>, // 0th bucket is the lowest
     size: usize,
 }
 
@@ -66,7 +66,10 @@ impl BitSet {
     }
 
     pub fn iter(&self) -> BitSetIterator {
-        BitSetIterator { set: self, index: 0 }
+        BitSetIterator {
+            set: self,
+            index: 0,
+        }
     }
 
     fn bucket_size_in_bits(&self) -> usize {
@@ -79,7 +82,8 @@ impl BitSet {
     }
 
     fn maybe_grow_buckets(&mut self, index: usize) {
-        assert!(self.can_grow_buckets(index), "not enough memory to grow buckets");
+        assert!(self.can_grow_buckets(index),
+                "not enough memory to grow buckets");
 
         while index > self.max_index() {
             self.buckets.push(0);
@@ -97,9 +101,7 @@ impl BitSet {
                     let (bucket_index, _) = self.split_index(index);
                     bucket_index < mem_free as usize
                 }
-                Err(_) => {
-                    true
-                }
+                Err(_) => true,
             }
         }
     }
@@ -113,22 +115,26 @@ impl BitSet {
 
     fn next_bit(&self, from_index: usize, pattern: bool) -> Option<usize> {
         if from_index < usize::max_value() {
-            let pattern = if pattern { 1 } else { 0 };
+            let pattern = if pattern {
+                1
+            } else {
+                0
+            };
 
             let mut index = from_index + 1;
             loop {
                 let (bucket_index, bit_index) = self.split_index(index);
                 if bucket_index >= self.buckets.len() {
-                    break
+                    break;
                 }
                 let rest_of_bits = self.buckets[bucket_index] >> bit_index;
                 let found = (rest_of_bits & 1) == pattern;
                 if found {
-                    return Some(index)
+                    return Some(index);
                 } else if index < self.max_index() {
                     index += 1;
                 } else {
-                    break
+                    break;
                 }
             }
         }
@@ -138,7 +144,11 @@ impl BitSet {
 
     fn previous_bit(&self, from_index: usize, pattern: bool) -> Option<usize> {
         if from_index > 0 {
-            let pattern = if pattern { 1 } else { 0 };
+            let pattern = if pattern {
+                1
+            } else {
+                0
+            };
 
             let mut index = from_index - 1;
             loop {
@@ -146,11 +156,11 @@ impl BitSet {
                 let rest_of_bits = self.buckets[bucket_index] >> bit_index;
                 let found = rest_of_bits & 1 == pattern;
                 if found {
-                    return Some(index)
+                    return Some(index);
                 } else if index > 0 {
                     index -= 1;
                 } else {
-                    break
+                    break;
                 }
             }
         }
@@ -161,10 +171,9 @@ impl BitSet {
 
 impl fmt::Display for BitSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let items: Vec<String> = self
-            .iter()
-            .map(|i| i.to_string())
-            .collect();
+        let items: Vec<String> = self.iter()
+                                     .map(|i| i.to_string())
+                                     .collect();
         write!(f, "{{{}}}", items.join(","))
     }
 }
@@ -180,8 +189,8 @@ mod tests {
     fn empty() {
         let b: BitSet = BitSet::new();
         let is_empty_set: bool = (0..N)
-            .filter(|i: &usize| { b.contains(*i) })
-            .count() == 0;
+                                     .filter(|i: &usize| b.contains(*i))
+                                     .count() == 0;
         assert!(is_empty_set);
     }
 
@@ -191,8 +200,8 @@ mod tests {
             let mut b: BitSet = BitSet::new();
             b.insert(i);
             let xs: Vec<usize> = (0..N)
-                .filter(|j: &usize| b.contains(*j))
-                .collect();
+                                     .filter(|j: &usize| b.contains(*j))
+                                     .collect();
             let contains_single_item_only = xs.len() == 1 && xs[0] == i;
             assert!(contains_single_item_only);
         }
@@ -200,7 +209,7 @@ mod tests {
 
     #[test]
     fn into_iter() {
-        let a = vec![5,55,63,64,65,70,88];
+        let a = vec![5, 55, 63, 64, 65, 70, 88];
         let mut b: BitSet = BitSet::new();
         for i in &a {
             b.insert(*i);
@@ -215,7 +224,7 @@ mod tests {
 
     #[test]
     fn into_reversed_iter() {
-        let a = vec![5,55,63,64,65,70,88];
+        let a = vec![5, 55, 63, 64, 65, 70, 88];
         let mut b: BitSet = BitSet::new();
         for i in &a {
             b.insert(*i);
@@ -260,7 +269,7 @@ mod tests {
 
     #[test]
     fn next_set_bit() {
-        let a = vec![5,55,63,64,65,70,88];
+        let a = vec![5, 55, 63, 64, 65, 70, 88];
         let mut b: BitSet = BitSet::new();
         for i in &a {
             b.insert(*i);
@@ -278,7 +287,7 @@ mod tests {
 
     #[test]
     fn next_clear_bit() {
-        let a = vec![1,2,6,7];
+        let a = vec![1, 2, 6, 7];
         let mut b: BitSet = BitSet::new();
         for i in &a {
             b.insert(*i);
@@ -313,7 +322,7 @@ mod tests {
 
     #[test]
     fn previous_set_bit() {
-        let a = vec![5,55,63,64,65,70,88];
+        let a = vec![5, 55, 63, 64, 65, 70, 88];
         let mut b: BitSet = BitSet::new();
         for i in &a {
             b.insert(*i);
@@ -330,7 +339,7 @@ mod tests {
 
     #[test]
     fn previous_clear_bit() {
-        let a = vec![1,2,6,7];
+        let a = vec![1, 2, 6, 7];
         let mut b: BitSet = BitSet::new();
         for i in &a {
             b.insert(*i);

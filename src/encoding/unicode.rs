@@ -32,10 +32,10 @@ pub fn to_utf16(utf8: &[u8]) -> Vec<u16> {
             ch = high | low;
             i += 2;
         } else {
-            let a = ((utf8[i] & 0b00011111) as u16) << 12;
-            let b = ((utf8[i + 1] & 0b01111111) as u16) << 6;
-            let c = (utf8[i + 2] & 0b01111111) as u16;
-            ch = a | b | c;
+            let high = ((utf8[i] & 0b00011111) as u16) << 12;
+            let middle = ((utf8[i + 1] & 0b01111111) as u16) << 6;
+            let low = (utf8[i + 2] & 0b01111111) as u16;
+            ch = high | middle | low;
             i += 3;
         }
 

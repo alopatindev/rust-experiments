@@ -1,4 +1,4 @@
-use std::fmt::{Display, Debug};
+use std::fmt::{Debug, Display};
 use std::ops::Range;
 
 pub type Bounds = Range<usize>;
@@ -98,8 +98,8 @@ fn split(bounds: &Bounds) -> (Bounds, Bounds) {
     let n = bounds.len();
     let half = n / 2 - 1;
 
-    let left = bounds.start .. bounds.start + half + 1;
-    let right = left.end .. bounds.end;
+    let left = bounds.start..bounds.start + half + 1;
+    let right = left.end..bounds.end;
 
     (left, right)
 }
@@ -116,7 +116,7 @@ mod tests {
 
         fn simple_impl(func: fn(&mut Vec<T>) -> &mut Vec<T>) {
             let merge_sort = || {
-                let mut a: Vec<i32> = vec![4,2,8,9,3,1,0,5,6,7];
+                let mut a: Vec<i32> = vec![4, 2, 8, 9, 3, 1, 0, 5, 6, 7];
                 let b: Vec<i32> = (0..10).collect();
                 assert_eq!(a.len(), b.len());
                 let a = func(&mut a);
@@ -146,16 +146,16 @@ mod tests {
 
     #[test]
     fn merge_even() {
-        let mut a = vec![6,7,1,2];
-        let b = vec![1,2,6,7];
+        let mut a = vec![6, 7, 1, 2];
+        let b = vec![1, 2, 6, 7];
         let n = a.len();
         assert_eq!(b, merge(&mut a, &(0..n)));
     }
 
     #[test]
     fn merge_odd() {
-        let mut a = vec![3,1,2];
-        let b = vec![1,2,3];
+        let mut a = vec![3, 1, 2];
+        let b = vec![1, 2, 3];
         let n = a.len();
         assert_eq!(b, merge(&mut a, &(0..n)));
     }
@@ -172,17 +172,21 @@ mod tests {
 
     #[bench]
     fn bench_recursive(b: &mut test::Bencher) {
-        b.iter(|| for n in 0..BENCH_MAX_N {
-            let mut a = make_random_vec(n);
-            let _ = merge_sort_recursive(&mut a);
+        b.iter(|| {
+            for n in 0..BENCH_MAX_N {
+                let mut a = make_random_vec(n);
+                let _ = merge_sort_recursive(&mut a);
+            }
         })
     }
 
     #[bench]
     fn bench_iterative(b: &mut test::Bencher) {
-        b.iter(|| for n in 0..BENCH_MAX_N {
-            let mut a = make_random_vec(n);
-            let _ = merge_sort_iterative(&mut a);
+        b.iter(|| {
+            for n in 0..BENCH_MAX_N {
+                let mut a = make_random_vec(n);
+                let _ = merge_sort_iterative(&mut a);
+            }
         })
     }
 }

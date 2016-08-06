@@ -45,6 +45,8 @@ EOF
 	exit 1
 fi
 
+#find src -type f -name '*.rs' -print0 | xargs -0 ~/.cargo/bin/rustfmt -v --write-mode overwrite
+
 ./scripts/update_readme.sh > /tmp/README.md
 diff -q README.md /tmp/README.md | grep differ && mv /tmp/README.md . || rm -f /tmp/README.md
 

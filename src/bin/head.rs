@@ -30,7 +30,7 @@ fn main() {
     opts.optopt(LINES_OPTION, "lines", "output first K lines", "K");
     opts.optflag(HELP_OPTION, "help", "print this help menu");
     let matches = match opts.parse(&args[1..]) {
-        Ok(matches) => { matches }
+        Ok(matches) => matches,
         Err(message) => {
             println!("Error: {}", message);
             print_usage(program, opts);
@@ -48,7 +48,9 @@ fn main() {
     if matches.opt_present(LINES_OPTION) {
         if let Some(text) = matches.opt_str(LINES_OPTION) {
             match text.parse::<usize>() {
-                Ok(number) => { limit = number; }
+                Ok(number) => {
+                    limit = number;
+                }
                 Err(message) => {
                     println!("Error: {}", message);
                     print_usage(program, opts);

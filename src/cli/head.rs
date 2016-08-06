@@ -11,12 +11,14 @@ pub fn head(input: &mut Read, output: &mut Write, limit: usize) {
 
     loop {
         limit_reached = line >= limit;
-        if limit_reached { break }
+        if limit_reached {
+            break;
+        }
 
         match input.read(&mut buffer) {
             Err(message) => {
                 println!("Error: {}", message);
-                break
+                break;
             }
             Ok(size) if size == 0 => break,
             Ok(size) => {
@@ -34,7 +36,9 @@ pub fn head(input: &mut Read, output: &mut Write, limit: usize) {
                     }
 
                     limit_reached = line >= limit;
-                    if limit_reached { break }
+                    if limit_reached {
+                        break;
+                    }
                 }
             }
         }

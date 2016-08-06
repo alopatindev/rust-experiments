@@ -3,7 +3,10 @@ impl IntoIterator for BitSet {
     type IntoIter = BitSetIntoIterator;
 
     fn into_iter(self) -> Self::IntoIter {
-        BitSetIntoIterator { set: self, index: 0 }
+        BitSetIntoIterator {
+            set: self,
+            index: 0,
+        }
     }
 }
 

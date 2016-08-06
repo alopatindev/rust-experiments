@@ -1,9 +1,9 @@
-use std::fmt::{Display, Debug};
+use std::fmt::{Debug, Display};
 
 pub fn bubble_sort<T: PartialOrd + Display + Debug>(a: &mut Vec<T>) -> &mut Vec<T> {
     let mut n = a.len();
     if n == 0 {
-        return a
+        return a;
     }
 
     let mut swapped = true;
@@ -29,7 +29,7 @@ mod tests {
 
     #[test]
     fn simple() {
-        let mut a: Vec<i32> = vec![4,2,8,9,3,1,0,5,6,7];
+        let mut a: Vec<i32> = vec![4, 2, 8, 9, 3, 1, 0, 5, 6, 7];
         let b: Vec<i32> = (0..10).collect();
         assert_eq!(a.len(), b.len());
         let a = bubble_sort(&mut a);
