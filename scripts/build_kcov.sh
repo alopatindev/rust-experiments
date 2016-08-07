@@ -1,9 +1,8 @@
 #!/bin/sh
 
-version=31
-wget "https://github.com/SimonKagstrom/kcov/archive/v${version}.tar.gz"
-tar xzf "v${version}.tar.gz"
-mv "kcov-${version}" kcov
+wget "https://github.com/SimonKagstrom/kcov/archive/master.tar.gz"
+tar xzf "master.tar.gz"
+mv "kcov-master" kcov
 cd kcov
 mkdir build
 cd build

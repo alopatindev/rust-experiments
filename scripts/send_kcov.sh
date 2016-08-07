@@ -1,11 +1,13 @@
 #!/bin/bash
 
+set -x
+
 PKGID="$(cargo pkgid)"
 [ -z "$PKGID" ] && exit 1
 ORIGIN="${PKGID%#*}"
 ORIGIN="${ORIGIN:7}"
 PKGNAMEVER="${PKGID#*#}"
-PKGNAME="${PKGNAMEVER%:*}"
+PKGNAME="$(echo $ORIGIN | sed 's!.*\/!!')"
 shift
 cargo test --no-run || exit $?
 EXE=($ORIGIN/target/debug/$PKGNAME-*)
@@ -14,6 +16,11 @@ if [ ${#EXE[@]} -ne 1 ]; then
     rm -f ${EXE[@]}
     cargo test --no-run || exit $?
 fi
-rm -rf $ORIGIN/target/cov
 
-kcov/build/src/kcov $ORIGIN/target/cov $ORIGIN/target/debug/$PKGNAME-* "$@"
+kcov/build/src/kcov \
+    --exclude-pattern=/.cargo,/usr/lib \
+    --verify \
+    --coveralls-id=$TRAVIS_JOB_ID \
+    $ORIGIN/target/cov \
+    $ORIGIN/target/debug/$PKGNAME-* \
+    "$@"
