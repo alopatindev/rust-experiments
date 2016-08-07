@@ -1,3 +1,7 @@
+#![allow(unstable_features)]
+#![feature(plugin)]
+#![plugin(clippy)]
+
 #![feature(test)]
 extern crate test;
 
