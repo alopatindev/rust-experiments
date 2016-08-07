@@ -1,10 +1,9 @@
-use std::fmt::{Debug, Display};
 use std::ops::Range;
 
 pub type Bounds = Range<usize>;
 
-pub fn merge_sort_recursive<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
-    fn helper<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>, bounds: &Bounds) {
+pub fn merge_sort_recursive<T: PartialOrd + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
+    fn helper<T: PartialOrd + Copy>(a: &mut Vec<T>, bounds: &Bounds) {
         assert!(bounds.start < bounds.end);
 
         if bounds.len() > 1 {
@@ -23,7 +22,7 @@ pub fn merge_sort_recursive<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<
     a
 }
 
-pub fn merge_sort_iterative<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
+pub fn merge_sort_iterative<T: PartialOrd + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
     let n = a.len();
     if n <= 1 {
         return a;
@@ -51,7 +50,7 @@ pub fn merge_sort_iterative<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<
     a
 }
 
-pub fn merge<T: PartialOrd + Display + Debug + Copy>(a: &Vec<T>, bounds: &Bounds) -> Vec<T> {
+pub fn merge<T: PartialOrd + Copy>(a: &Vec<T>, bounds: &Bounds) -> Vec<T> {
     assert!(bounds.start < bounds.end);
 
     let accumulate_result = |index: &mut usize, result: &mut Vec<T>| {
@@ -85,7 +84,7 @@ pub fn merge<T: PartialOrd + Display + Debug + Copy>(a: &Vec<T>, bounds: &Bounds
     result
 }
 
-fn merge_and_update<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>, bounds: &Bounds) {
+fn merge_and_update<T: PartialOrd + Copy>(a: &mut Vec<T>, bounds: &Bounds) {
     let merged = merge(a, &bounds);
     for (i, mi) in merged.iter().enumerate() {
         a[bounds.start + i] = *mi;
