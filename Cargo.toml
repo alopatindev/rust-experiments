@@ -14,7 +14,7 @@ notify = "2.6.2"
 quickcheck = "0.3"
 rand = "0.3.14"
 sys-info = "0.4"
-clippy = {version="*", optional = true}
+clippy = {version="0.0.80", optional = true}
 
 [features]
 default = ["clippy"]

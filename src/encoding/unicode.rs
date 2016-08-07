@@ -49,11 +49,7 @@ pub fn to_utf16(utf8: &[u8]) -> Vec<u16> {
 mod tests {
     pub fn make_strings<S: Into<String>>(utf8: S) -> (Vec<u8>, Vec<u16>) {
         let utf8 = utf8.into();
-        let mut utf8_bytes: Vec<u8> = vec![];
-        for i in utf8.as_bytes() {
-            utf8_bytes.push(*i);
-        }
-
+        let utf8_bytes: Vec<u8> = utf8.as_bytes().into();
         let utf16: Vec<u16> = utf8.encode_utf16().collect();
         (utf8_bytes, utf16)
     }
