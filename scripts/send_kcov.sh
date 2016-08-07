@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -x
-
 PKGID="$(cargo pkgid)"
 [ -z "$PKGID" ] && exit 1
 ORIGIN="${PKGID%#*}"
