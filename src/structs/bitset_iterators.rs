@@ -18,7 +18,7 @@ pub struct BitSetIntoIterator {
 impl Iterator for BitSetIntoIterator {
     type Item = usize;
 
-    fn next(&mut self) -> Option<usize> {
+    fn next(&mut self) -> Option<Self::Item> {
         let next = self.set.next_set_bit(self.index);
         if let Some(index) = next {
             self.index = index;
