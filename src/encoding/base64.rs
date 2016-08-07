@@ -1,7 +1,8 @@
-pub fn base64_encode(input: String) -> String {
+pub fn base64_encode<S: Into<String>>(input: S) -> String {
     let chars: &[u8] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
                            .as_bytes();
 
+    let input = input.into();
     let data = string_to_vec(input.as_str());
     let mut result: Vec<u8> = vec![];
 
@@ -35,7 +36,8 @@ pub fn base64_encode(input: String) -> String {
     String::from_utf8(result).unwrap()
 }
 
-pub fn base64_decode(input: String) -> String {
+pub fn base64_decode<S: Into<String>>(input: S) -> String {
+    let input = input.into();
     let data = string_to_vec(input.as_str());
     let mut result: Vec<u8> = vec![];
 
@@ -146,11 +148,11 @@ mod tests {
 
     #[test]
     fn encode() {
-        assert_eq!(ENCODED.to_string(), base64_encode(RAW.to_string()))
+        assert_eq!(ENCODED, base64_encode(RAW))
     }
 
     #[test]
     fn decode() {
-        assert_eq!(RAW.to_string(), base64_decode(ENCODED.to_string()))
+        assert_eq!(RAW, base64_decode(ENCODED))
     }
 }
