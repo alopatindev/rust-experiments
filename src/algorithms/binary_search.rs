@@ -65,6 +65,7 @@ mod tests {
     /// works on `x86_64` Linux after `echo -n 1 > /proc/sys/vm/overcommit_memory`
     #[test]
     #[ignore]
+    #[allow(transmute_ptr_to_ref)]
     fn heavy() {
         extern crate libc;
         use std::{mem, ptr};
@@ -88,7 +89,7 @@ mod tests {
                      (tsize * N) as f64 / 1073741824.0,
                      N);
 
-            let p = libc::calloc(tsize, N);
+            let p: *mut libc::c_void = libc::calloc(tsize, N);
             mem::forget(p);
 
             if p.is_null() {
