@@ -1,4 +1,5 @@
 [![Build Status](https://api.travis-ci.org/alopatindev/rust_experiments.svg?branch=master)](https://travis-ci.org/alopatindev/rust_experiments)
 [![Coverage Status](https://coveralls.io/repos/github/alopatindev/rust_experiments/badge.svg?branch=master)](https://coveralls.io/github/alopatindev/rust_experiments?branch=master)
+[![codecov.io](http://codecov.io/github/alopatindev/rust_experiments/coverage.svg?branch=master)]
 
 "Hello Worlds" in Rust

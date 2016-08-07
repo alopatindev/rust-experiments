@@ -23,5 +23,7 @@ script:
   - cargo run --verbose --bin tail -- -h
   - cargo run --verbose --bin tail -- -n100 /var/log/dpkg.log
   - cargo bench
+after_success:
   - scripts/build_kcov.sh
   - scripts/send_kcov.sh
+  - bash <(curl -s https://codecov.io/bash)
