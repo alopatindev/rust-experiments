@@ -27,8 +27,15 @@ fn test_bitset() {
     println!("set={} with unset={}", set, unset);
 }
 
+fn test_strings() {
+    let s = "Nы";
+    assert_eq!(3, s.len());
+    assert_eq!(2, s.chars().count());
+}
+
 fn main() {
     array_search();
     print_list();
     test_bitset();
+    test_strings();
 }
