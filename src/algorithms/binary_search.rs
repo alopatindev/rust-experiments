@@ -62,7 +62,7 @@ mod tests {
         assert_eq!(binary_search(&a, &1), None);
     }
 
-    /// works on x86_64 Linux after `echo -n 1 > /proc/sys/vm/overcommit_memory`
+    /// works on `x86_64` Linux after `echo -n 1 > /proc/sys/vm/overcommit_memory`
     #[test]
     #[ignore]
     fn heavy() {
@@ -121,9 +121,9 @@ mod tests {
     fn make_random_sorted_vec(n: usize) -> Vec<i32> {
         let mut a = vec![0; n];
         let mut k = 0;
-        for i in 0..n {
+        for it in &mut a {
             k += rand::random::<i32>() % 100;
-            a[i] = k;
+            *it = k;
         }
         a
     }

@@ -87,8 +87,8 @@ pub fn merge<T: PartialOrd + Display + Debug + Copy>(a: &Vec<T>, bounds: &Bounds
 
 fn merge_and_update<T: PartialOrd + Display + Debug + Copy>(a: &mut Vec<T>, bounds: &Bounds) {
     let merged = merge(a, &bounds);
-    for i in 0..merged.len() {
-        a[bounds.start + i] = merged[i];
+    for (i, mi) in merged.iter().enumerate() {
+        a[bounds.start + i] = *mi;
     }
 }
 
@@ -146,24 +146,24 @@ mod tests {
 
     #[test]
     fn merge_even() {
-        let mut a = vec![6, 7, 1, 2];
+        let a = vec![6, 7, 1, 2];
         let b = vec![1, 2, 6, 7];
         let n = a.len();
-        assert_eq!(b, merge(&mut a, &(0..n)));
+        assert_eq!(b, merge(&a, &(0..n)));
     }
 
     #[test]
     fn merge_odd() {
-        let mut a = vec![3, 1, 2];
+        let a = vec![3, 1, 2];
         let b = vec![1, 2, 3];
         let n = a.len();
-        assert_eq!(b, merge(&mut a, &(0..n)));
+        assert_eq!(b, merge(&a, &(0..n)));
     }
 
     fn make_random_vec(n: usize) -> Vec<i32> {
         let mut a = vec![0; n];
-        for i in 0..n {
-            a[i] = rand::random::<i32>() % 100;
+        for it in &mut a {
+            *it = rand::random::<i32>() % 100;
         }
         a
     }

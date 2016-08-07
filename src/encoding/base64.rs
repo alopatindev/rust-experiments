@@ -1,7 +1,4 @@
 pub fn base64_encode<S: Into<String>>(input: S) -> String {
-    let chars: &[u8] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-                           .as_bytes();
-
     let input = input.into();
     let data = string_to_vec(input.as_str());
     let mut result: Vec<u8> = vec![];
@@ -9,18 +6,18 @@ pub fn base64_encode<S: Into<String>>(input: S) -> String {
     let n = input.len();
     let mut i = 0;
     while i < n {
-        let char_index = compute_char_index(&data, i);
+        let char_index = compute_char_index(&data[..], i);
         let char_indexes = separate_24_to_6_bit(char_index);
 
-        result.push(chars[char_indexes[0]]);
-        result.push(chars[char_indexes[1]]);
+        result.push(ENCODE_TABLE[char_indexes[0]]);
+        result.push(ENCODE_TABLE[char_indexes[1]]);
 
         if i + 1 < n {
-            result.push(chars[char_indexes[2]]);
+            result.push(ENCODE_TABLE[char_indexes[2]]);
         }
 
         if i + 2 < n {
-            result.push(chars[char_indexes[3]]);
+            result.push(ENCODE_TABLE[char_indexes[3]]);
         }
 
         i += 3;
@@ -53,7 +50,7 @@ pub fn base64_decode<S: Into<String>>(input: S) -> String {
     let n = data.len();
     let mut i = 0;
     while i < n {
-        let c: u8 = BASE64_DECODE_TABLE[data[i]];
+        let c: u8 = DECODE_TABLE[data[i]];
         i += 1;
 
         match c {
@@ -88,7 +85,7 @@ pub fn base64_decode<S: Into<String>>(input: S) -> String {
     String::from_utf8(result).unwrap()
 }
 
-fn compute_char_index(data: &Vec<usize>, i: usize) -> usize {
+fn compute_char_index(data: &[usize], i: usize) -> usize {
     let n = data.len();
 
     let mut char_index = data[i] << 16;
@@ -120,24 +117,26 @@ fn string_to_vec(input: &str) -> Vec<usize> {
 const WHITESPACE: u8 = 64u8;
 const EQUALS: u8 = 65u8;
 
-const BASE64_DECODE_TABLE: [u8; 256] = [66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 64, 66, 66, 66,
-                                        66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
-                                        66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
-                                        66, 62, 66, 66, 66, 63, 52, 53, 54, 55, 56, 57, 58, 59,
-                                        60, 61, 66, 66, 66, 65, 66, 66, 66, 0, 1, 2, 3, 4, 5, 6,
-                                        7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-                                        22, 23, 24, 25, 66, 66, 66, 66, 66, 66, 26, 27, 28, 29,
-                                        30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
-                                        44, 45, 46, 47, 48, 49, 50, 51, 66, 66, 66, 66, 66, 66,
-                                        66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
-                                        66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
-                                        66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
-                                        66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
-                                        66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
-                                        66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
-                                        66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
-                                        66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
-                                        66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66];
+const DECODE_TABLE: [u8; 256] = [66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 64, 66, 66, 66, 66, 66,
+                                 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
+                                 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 62, 66, 66, 66, 63,
+                                 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 66, 66, 66, 65, 66, 66,
+                                 66, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+                                 18, 19, 20, 21, 22, 23, 24, 25, 66, 66, 66, 66, 66, 66, 26, 27,
+                                 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+                                 44, 45, 46, 47, 48, 49, 50, 51, 66, 66, 66, 66, 66, 66, 66, 66,
+                                 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
+                                 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
+                                 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
+                                 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
+                                 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
+                                 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
+                                 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
+                                 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66];
+
+
+const ENCODE_TABLE: &'static [u8] =
+    b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 #[cfg(test)]
 mod tests {

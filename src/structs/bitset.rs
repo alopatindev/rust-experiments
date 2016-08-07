@@ -3,6 +3,7 @@ use std::{fmt, mem};
 
 include!("bitset_iterators.rs");
 
+#[derive(Default)]
 pub struct BitSet {
     buckets: Vec<usize>, // 0th bucket is the lowest
     size: usize,
@@ -18,6 +19,10 @@ impl BitSet {
 
     pub fn len(&self) -> usize {
         self.size
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.size == 0
     }
 
     pub fn next_set_bit(&self, from_index: usize) -> Option<usize> {
@@ -191,7 +196,7 @@ mod tests {
         let is_empty_set: bool = (0..N)
                                      .filter(|i: &usize| b.contains(*i))
                                      .count() == 0;
-        assert!(is_empty_set);
+        assert!(is_empty_set && b.is_empty());
     }
 
     #[test]
