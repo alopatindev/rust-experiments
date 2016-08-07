@@ -1,4 +1,12 @@
 language: rust
+addons:
+  apt:
+    packages:
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - cmake
+      - gcc
 rust:
   - stable
   - beta
@@ -15,3 +23,5 @@ script:
   - cargo run --verbose --bin tail -- -h
   - cargo run --verbose --bin tail -- -n100 /var/log/dpkg.log
   - cargo bench
+  - scripts/build_kcov.sh
+  - scripts/send_kcov.sh
