@@ -7,10 +7,10 @@ pub fn merge_sort_recursive<T: PartialOrd + Copy>(a: &mut Vec<T>) -> &mut Vec<T>
         assert!(bounds.start < bounds.end);
 
         if bounds.len() > 1 {
-            let (left, right) = split(&bounds);
+            let (left, right) = split(bounds);
             helper(a, &left);
             helper(a, &right);
-            merge_and_update(a, &bounds);
+            merge_and_update(a, bounds);
         }
     }
 
@@ -50,7 +50,7 @@ pub fn merge_sort_iterative<T: PartialOrd + Copy>(a: &mut Vec<T>) -> &mut Vec<T>
     a
 }
 
-pub fn merge<T: PartialOrd + Copy>(a: &Vec<T>, bounds: &Bounds) -> Vec<T> {
+pub fn merge<T: PartialOrd + Copy>(a: &[T], bounds: &Bounds) -> Vec<T> {
     assert!(bounds.start < bounds.end);
 
     let accumulate_result = |index: &mut usize, result: &mut Vec<T>| {
@@ -61,7 +61,7 @@ pub fn merge<T: PartialOrd + Copy>(a: &Vec<T>, bounds: &Bounds) -> Vec<T> {
     let mut result: Vec<T> = vec![];
     result.reserve_exact(bounds.len());
 
-    let (left, right) = split(&bounds);
+    let (left, right) = split(bounds);
     let mut i = left.start;
     let mut j = right.start;
 
@@ -85,7 +85,7 @@ pub fn merge<T: PartialOrd + Copy>(a: &Vec<T>, bounds: &Bounds) -> Vec<T> {
 }
 
 fn merge_and_update<T: PartialOrd + Copy>(a: &mut Vec<T>, bounds: &Bounds) {
-    let merged = merge(a, &bounds);
+    let merged = merge(a, bounds);
     for (i, mi) in merged.iter().enumerate() {
         a[bounds.start + i] = *mi;
     }
