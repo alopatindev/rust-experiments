@@ -9,6 +9,7 @@ path = "src/lib.rs"
 
 [dependencies]
 getopts = "0.2"
+hyper = "0.9.10"
 libc = "0.2.14"
 notify = "2.6.2"
 quickcheck = "0.3"
