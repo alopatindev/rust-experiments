@@ -17,7 +17,7 @@ pub fn download(url: &str,
                 -> io::Result<()> {
     match make_request(url) {
         Ok(mut response) => process_response(&mut response, output_document),
-        Err(text) => make_io_error(text.to_string()),
+        Err(text) => new_io_error(text.to_string()),
     }
 }
 
@@ -40,17 +40,17 @@ fn process_response(response: &mut Response, output_document: Option<String>) ->
                         try!(file.write(&buffer[0..size]));
                     }
                 }
-                Err(text) => return make_io_error(text.to_string()),
+                Err(text) => return new_io_error(text.to_string()),
             }
         }
         try!(file.sync_all());
         Ok(())
     } else {
-        make_io_error(response.status.to_string())
+        new_io_error(response.status.to_string())
     }
 }
 
-fn make_io_error<S: Into<String>>(text: S) -> io::Result<()> {
+fn new_io_error<S: Into<String>>(text: S) -> io::Result<()> {
     let text = text.into();
     Err(io::Error::new(io::ErrorKind::Other, text))
 }
