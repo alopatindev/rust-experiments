@@ -1,6 +1,7 @@
 extern crate hyper;
 
 use std::fs::File;
+use std::io;
 use std::io::prelude::*;
 use std::path::Path;
 use self::hyper::{Client, Url};
@@ -13,10 +14,10 @@ const BUFFER_SIZE: usize = 4096;
 pub fn download(url: &str,
                 output_document: Option<String>,
                 continue_partial: bool)
-                -> Result<(), String> {
+                -> io::Result<()> {
     match make_request(url) {
         Ok(mut response) => process_response(&mut response, output_document),
-        Err(text) => Err(text.to_string()),
+        Err(text) => make_io_error(text.to_string()),
     }
 }
 
@@ -25,32 +26,33 @@ fn make_request(url: &str) -> error::Result<Response> {
     client.get(url).send()
 }
 
-fn process_response(response: &mut Response,
-                    output_document: Option<String>)
-                    -> Result<(), String> {
+fn process_response(response: &mut Response, output_document: Option<String>) -> io::Result<()> {
     if response.status == StatusCode::Ok {
         let file_name = output_document.unwrap_or_else(|| response.url.to_file_name());
-        if let Ok(mut file) = File::create(file_name) {
-            let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
-            loop {
-                if let Ok(size) = response.read(&mut buffer) {
+        let mut file = try!(File::create(file_name));
+        let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
+        loop {
+            match response.read(&mut buffer) {
+                Ok(size) => {
                     if size == 0 {
                         break;
-                    } else if let Err(text) = file.write(&buffer[0..size]) {
-                        return Err(text.to_string());
+                    } else {
+                        try!(file.write(&buffer[0..size]));
                     }
-                } else {
-                    return Err("Failed to read the response".to_string());
                 }
-            }
-            if let Err(text) = file.sync_all() {
-                return Err(text.to_string());
+                Err(text) => return make_io_error(text.to_string()),
             }
         }
+        try!(file.sync_all());
         Ok(())
     } else {
-        Err(response.status.to_string())
+        make_io_error(response.status.to_string())
     }
+}
+
+fn make_io_error<S: Into<String>>(text: S) -> io::Result<()> {
+    let text = text.into();
+    Err(io::Error::new(io::ErrorKind::Other, text))
 }
 
 trait UrlFileName {
