@@ -30,20 +30,22 @@ fn process_response(response: &mut Response,
                     -> Result<(), String> {
     if response.status == StatusCode::Ok {
         let file_name = output_document.unwrap_or_else(|| response.url.to_file_name());
-        match File::create(file_name) {
-            Ok(mut file) => {
-                let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
-                loop {
-                    let size = response.read(&mut buffer).unwrap();
+        if let Ok(mut file) = File::create(file_name) {
+            let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
+            loop {
+                if let Ok(size) = response.read(&mut buffer) {
                     if size == 0 {
                         break;
-                    } else {
-                        let _ = file.write(&buffer[0..size]).unwrap();
+                    } else if let Err(text) = file.write(&buffer[0..size]) {
+                        return Err(text.to_string());
                     }
+                } else {
+                    return Err("Failed to read the response".to_string());
                 }
-                let _ = file.sync_all();
             }
-            Err(_) => {}
+            if let Err(text) = file.sync_all() {
+                return Err(text.to_string());
+            }
         }
         Ok(())
     } else {
