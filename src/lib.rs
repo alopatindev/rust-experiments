@@ -12,4 +12,5 @@ extern crate quickcheck;
 pub mod algorithms;
 pub mod cli;
 pub mod encoding;
+pub mod format;
 pub mod structs;

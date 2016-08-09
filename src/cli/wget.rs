@@ -1,5 +1,8 @@
 extern crate hyper;
+extern crate terminal_size;
 extern crate time;
+
+use format::size_to_human_readable;
 
 use std::fs::File;
 use std::io;
@@ -8,8 +11,9 @@ use std::path::Path;
 use self::hyper::{Client, Url};
 use self::hyper::client::Response;
 use self::hyper::error;
-use self::hyper::header::{ContentLength, Header, HeaderFormat};
+use self::hyper::header::{ContentLength, Headers};
 use self::hyper::status::StatusCode;
+use self::terminal_size::{Width, terminal_size};
 
 const BUFFER_SIZE: usize = 4096;
 const STATS_UPDATE_TIMEOUT: f64 = 0.5;
@@ -64,7 +68,7 @@ impl Downloader {
         loop {
             match response.read(&mut buffer) {
                 Ok(delta_size) => {
-                    self.update_stats(&delta_size, &response);
+                    self.update_stats(&delta_size, &response.headers);
                     if delta_size == 0 {
                         break;
                     } else {
@@ -78,9 +82,9 @@ impl Downloader {
         Ok(())
     }
 
-    fn update_stats(&mut self, delta_size: &usize, response: &Response) {
+    fn update_stats(&mut self, delta_size: &usize, headers: &Headers) {
         if self.size.is_none() {
-            if let Some(content_length) = response.headers.get::<ContentLength>() {
+            if let Some(content_length) = headers.get::<ContentLength>() {
                 self.size = Some((*content_length).0 as usize);
             }
         }
@@ -99,13 +103,37 @@ impl Downloader {
     }
 
     fn print_stats(&self, delta_size_read: &usize) {
-        let progress = "Unknown progress";
-        let speed = 0.0;
-        println!("{:?} {} bytes  {} bytes/sec",
-                 progress,
-                 self.size_read,
-                 speed);
+        let progress = match self.size {
+            Some(size) => {
+                let size_read = self.size_read as f64;
+                let size = size as f64;
+                let percentage = size_read * 100.0 / size;
+                format!("{:.1}%", percentage)
+            }
+            None => "Unknown progress".to_string(),
+        };
+
+        let size_read = size_to_human_readable(self.size_read as f64);
+        let speed = (*delta_size_read as f64) / STATS_UPDATE_TIMEOUT;
+        let speed = size_to_human_readable(speed);
+
+        clear_terminal_line();
+        print!("{}  {}  {}/s", progress, size_read, speed);
+        io::stdout().flush().unwrap();
     }
+}
+
+fn clear_terminal_line() {
+    print!("\r");
+    let width = if let Some((Width(w), _)) = terminal_size() {
+        w
+    } else {
+        80
+    };
+    for _ in 0..width {
+        print!(" ");
+    }
+    print!("\r");
 }
 
 fn new_io_error<S: Into<String>>(text: S) -> io::Result<()> {
@@ -130,5 +158,24 @@ impl UrlFileName for Url {
         }
 
         "index.html".to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    extern crate hyper;
+    use self::hyper::Url;
+    use super::UrlFileName;
+
+    #[test]
+    fn file_name() {
+        assert_eq!("struct.Vec.html",
+                   Url::parse("https://doc.rust-lang.org/std/vec/struct.Vec.html")
+                       .unwrap()
+                       .to_file_name());
+        assert_eq!("index.html",
+                   Url::parse("https://doc.rust-lang.org/")
+                       .unwrap()
+                       .to_file_name());
     }
 }
