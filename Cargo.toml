@@ -6,8 +6,10 @@ authors = ["Alexander Lopatin"]
 [lib]
 name = "rust_experiments"
 path = "src/lib.rs"
+doctest = false
 
 [dependencies]
+clippy = {version="0.0.80", optional = true}
 getopts = "0.2"
 hyper = "0.9.10"
 libc = "0.2.14"
@@ -15,7 +17,7 @@ notify = "2.6.2"
 quickcheck = "0.3"
 rand = "0.3.14"
 sys-info = "0.4"
-clippy = {version="0.0.80", optional = true}
+time = "0.1.35"
 
 [features]
 default = ["clippy"]

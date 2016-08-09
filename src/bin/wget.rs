@@ -1,7 +1,7 @@
 extern crate getopts;
 
 extern crate rust_experiments;
-use rust_experiments::cli::wget::download;
+use rust_experiments::cli::wget::Downloader;
 
 use getopts::Options;
 use std::env;
@@ -55,7 +55,8 @@ fn main() {
         }
     }
 
-    match download(url, output_document, continue_partial) {
+    let mut downloader = Downloader::new(url, output_document, continue_partial);
+    match downloader.run() {
         Ok(_) => println!("Success"),
         Err(text) => println!("Error: {:?}", text),
     }
