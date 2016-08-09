@@ -12,9 +12,6 @@
 * bin/hello.rs
 * bin/tail.rs
 * bin/wget.rs
-* cli/head.rs
-* cli/tail.rs
-* cli/wget.rs
 * encoding/base64.rs
 * encoding/unicode.rs
 * structs/bitset_iterators.rs

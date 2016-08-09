@@ -14,3 +14,4 @@ pub mod cli;
 pub mod encoding;
 pub mod format;
 pub mod structs;
+pub mod terminal;

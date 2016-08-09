@@ -1,8 +1,8 @@
 extern crate hyper;
-extern crate terminal_size;
 extern crate time;
 
 use format::size_to_human_readable;
+use terminal::{clear_current_line, progress_bar};
 
 use std::fs::File;
 use std::io;
@@ -13,10 +13,10 @@ use self::hyper::client::Response;
 use self::hyper::error;
 use self::hyper::header::{ContentLength, Headers};
 use self::hyper::status::StatusCode;
-use self::terminal_size::{Width, terminal_size};
 
 const BUFFER_SIZE: usize = 4096;
 const STATS_UPDATE_TIMEOUT: f64 = 0.5;
+const PROGRESS_BAR_LENGTH: i32 = 30;
 
 pub struct Downloader {
     url: String,
@@ -103,12 +103,15 @@ impl Downloader {
     }
 
     fn print_stats(&self, delta_size_read: &usize) {
-        let progress = match self.size {
+        let progress_text = match self.size {
             Some(size) => {
                 let size_read = self.size_read as f64;
                 let size = size as f64;
-                let percentage = size_read * 100.0 / size;
-                format!("{:.1}%", percentage)
+                let progress = size_read / size;
+                let percentage = progress * 100.0;
+                format!("{}  {:.1}%",
+                        progress_bar(progress, PROGRESS_BAR_LENGTH),
+                        percentage)
             }
             None => "Unknown progress".to_string(),
         };
@@ -117,23 +120,10 @@ impl Downloader {
         let speed = (*delta_size_read as f64) / STATS_UPDATE_TIMEOUT;
         let speed = size_to_human_readable(speed);
 
-        clear_terminal_line();
-        print!("{}  {}  {}/s", progress, size_read, speed);
+        clear_current_line();
+        print!("{}  {}  {}/s", progress_text, size_read, speed);
         io::stdout().flush().unwrap();
     }
-}
-
-fn clear_terminal_line() {
-    print!("\r");
-    let width = if let Some((Width(w), _)) = terminal_size() {
-        w
-    } else {
-        80
-    };
-    for _ in 0..width {
-        print!(" ");
-    }
-    print!("\r");
 }
 
 fn new_io_error<S: Into<String>>(text: S) -> io::Result<()> {
