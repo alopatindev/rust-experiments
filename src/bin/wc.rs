@@ -12,6 +12,7 @@ const BYTES_OPTION: &'static str = "c";
 const CHARS_OPTION: &'static str = "m";
 const LINES_OPTION: &'static str = "l";
 const WORDS_OPTION: &'static str = "w";
+const MAX_LINE_LENGTH_OPTION: &'static str = "L";
 const HELP_OPTION: &'static str = "h";
 
 fn print_usage(program: &str, opts: Options) {
@@ -30,6 +31,8 @@ fn do_work(input: &mut Read, matches: &Matches) {
         println!("{}", counters.newlines);
     } else if matches.opt_present(WORDS_OPTION) {
         println!("{}", counters.words);
+    } else if matches.opt_present(MAX_LINE_LENGTH_OPTION) {
+        println!("{}", counters.max_line_length);
     } else {
         println!("\t{}\t{}\t{}",
                  counters.newlines,
@@ -47,6 +50,9 @@ fn main() {
     opts.optflag(CHARS_OPTION, "chars", "print the character counts");
     opts.optflag(LINES_OPTION, "lines", "print the newline counts");
     opts.optflag(WORDS_OPTION, "words", "print the word counts");
+    opts.optflag(MAX_LINE_LENGTH_OPTION,
+                 "max-line-length",
+                 "print the length of the longest line");
     opts.optflag(HELP_OPTION, "help", "print this help menu");
     let matches = match opts.parse(&args[1..]) {
         Ok(matches) => matches,
