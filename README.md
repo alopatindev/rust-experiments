@@ -11,6 +11,7 @@
 * bin/head.rs
 * bin/hello.rs
 * bin/tail.rs
+* bin/wc.rs
 * bin/wget.rs
 * encoding/base64.rs
 * encoding/unicode.rs

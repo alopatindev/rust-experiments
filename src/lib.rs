@@ -1,4 +1,5 @@
 #![allow(unstable_features)]
+#![feature(io)]
 #![feature(plugin)]
 #![plugin(clippy)]
 
