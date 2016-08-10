@@ -77,6 +77,7 @@ impl Downloader {
             }
         }
         try!(file.sync_all());
+        println!("");
         Ok(())
     }
 
