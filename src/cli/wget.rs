@@ -25,11 +25,10 @@ pub struct Downloader {
     size_read: usize,
     size_read_last_update: usize,
     time_last_update: f64,
-    continue_partial: bool,
 }
 
 impl Downloader {
-    pub fn new(url: &str, output_document: Option<String>, continue_partial: bool) -> Downloader {
+    pub fn new(url: &str, output_document: Option<String>) -> Downloader {
         Downloader {
             url: url.to_string(),
             file_name: output_document,
@@ -37,7 +36,6 @@ impl Downloader {
             size_read: 0,
             size_read_last_update: 0,
             time_last_update: 0.0,
-            continue_partial: continue_partial,
         }
     }
 
