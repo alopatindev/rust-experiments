@@ -6,7 +6,7 @@ use rust_experiments::cli::head::head;
 use getopts::Options;
 use std::env;
 use std::fs::File;
-use std::io::stdout;
+use std::io::{stdin, stdout};
 
 const LINES_OPTION: &'static str = "n";
 const HELP_OPTION: &'static str = "h";
@@ -15,11 +15,6 @@ const DEFAULT_LINES_NUMBER: usize = 10;
 fn print_usage(program: &str, opts: Options) {
     let brief = format!("Usage: {} [options] FILE", program);
     print!("{}", opts.usage(&brief));
-}
-
-fn do_work(input: &str, limit: usize) {
-    let mut input_file = File::open(input).unwrap();
-    head(&mut input_file, &mut stdout(), limit);
 }
 
 fn main() {
@@ -38,12 +33,11 @@ fn main() {
         }
     };
 
-    if matches.opt_present(HELP_OPTION) || matches.free.is_empty() {
+    if matches.opt_present(HELP_OPTION) {
         print_usage(program, opts);
         return;
     }
 
-    let input = &matches.free[0];
     let mut limit = DEFAULT_LINES_NUMBER;
     if matches.opt_present(LINES_OPTION) {
         if let Some(text) = matches.opt_str(LINES_OPTION) {
@@ -63,5 +57,14 @@ fn main() {
         }
     }
 
-    do_work(input, limit);
+    if matches.free.is_empty() {
+        let mut input = stdin();
+        head(&mut input, &mut stdout(), limit);
+    } else {
+        let file_name = &matches.free[0];
+        match File::open(file_name) {
+            Ok(mut input) => head(&mut input, &mut stdout(), limit),
+            Err(text) => println!("Error: {}", text),
+        }
+    }
 }

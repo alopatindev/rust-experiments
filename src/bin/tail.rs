@@ -8,7 +8,7 @@ use getopts::Options;
 use notify::{RecommendedWatcher, Watcher};
 use std::env;
 use std::fs::File;
-use std::io::stdout;
+use std::io::{Write, stdin, stdout};
 use std::sync::mpsc::channel;
 
 const LINES_OPTION: &'static str = "n";
@@ -21,26 +21,23 @@ fn print_usage(program: &str, opts: Options) {
     print!("{}", opts.usage(&brief));
 }
 
-fn do_work_looped(input: &str, limit: usize) -> notify::Result<()> {
-    let mut input_file = File::open(input).unwrap();
-
+fn tail_looped(input: &mut File,
+               input_file_name: &str,
+               output: &mut Write,
+               limit: usize)
+               -> notify::Result<()> {
     let (tx, rx) = channel();
     let mut watcher: RecommendedWatcher = try!(Watcher::new(tx));
-    try!(watcher.watch(input));
+    try!(watcher.watch(input_file_name));
 
     loop {
-        tail(&mut input_file, &mut stdout(), limit);
+        tail(input, output, limit);
 
         match rx.recv() {
             Ok(_) => {}
             Err(message) => println!("Error: {}", message),
         }
     }
-}
-
-fn do_work(input: &str, limit: usize) {
-    let mut input_file = File::open(input).unwrap();
-    tail(&mut input_file, &mut stdout(), limit);
 }
 
 fn main() {
@@ -62,12 +59,11 @@ fn main() {
         }
     };
 
-    if matches.opt_present(HELP_OPTION) || matches.free.is_empty() {
+    if matches.opt_present(HELP_OPTION) {
         print_usage(program, opts);
         return;
     }
 
-    let input = &matches.free[0];
     let mut limit = DEFAULT_LINES_NUMBER;
     if matches.opt_present(LINES_OPTION) {
         if let Some(text) = matches.opt_str(LINES_OPTION) {
@@ -87,9 +83,20 @@ fn main() {
         }
     }
 
-    if matches.opt_present(FOLLOW_OPTION) {
-        let _ = do_work_looped(input, limit);
+    if matches.free.is_empty() {
+        let mut input = stdin();
+        tail(&mut input, &mut stdout(), limit);
     } else {
-        do_work(input, limit);
+        let file_name = &matches.free[0];
+        match File::open(file_name) {
+            Ok(mut input) => {
+                if matches.opt_present(FOLLOW_OPTION) {
+                    let _ = tail_looped(&mut input, file_name, &mut stdout(), limit);
+                } else {
+                    tail(&mut input, &mut stdout(), limit)
+                }
+            }
+            Err(text) => println!("Error: {}", text),
+        }
     }
 }
