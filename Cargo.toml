@@ -9,7 +9,7 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-clippy = {version="0.0.80", optional = true}
+clippy = {version="0.0.85", optional = true}
 getopts = "0.2"
 hyper = "0.9.10"
 libc = "0.2.14"
