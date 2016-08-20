@@ -18,3 +18,4 @@
 * structs/bitset_iterators.rs
 * structs/bitset.rs
 * structs/list.rs
+* structs/max_heap.rs
