@@ -1,21 +1,21 @@
 use std::mem;
 
-pub struct List {
-    head: Link,
+pub struct List<T> {
+    head: Link<T>,
     size: usize,
 }
 
-enum Link {
+enum Link<T> {
     Empty,
-    More(Box<Node>),
+    More(Box<Node<T>>),
 }
 
-struct Node {
-    elem: i32,
-    next: Link,
+struct Node<T> {
+    elem: T,
+    next: Link<T>,
 }
 
-impl List {
+impl<T> List<T> {
     pub fn new() -> Self {
         List {
             head: Link::Empty,
@@ -23,7 +23,7 @@ impl List {
         }
     }
 
-    pub fn push(&mut self, elem: i32) {
+    pub fn push(&mut self, elem: T) {
         let new_node = Box::new(Node {
             elem: elem,
             next: mem::replace(&mut self.head, Link::Empty),
@@ -33,7 +33,7 @@ impl List {
         self.size += 1;
     }
 
-    pub fn pop(&mut self) -> Option<i32> {
+    pub fn pop(&mut self) -> Option<T> {
         match mem::replace(&mut self.head, Link::Empty) {
             Link::Empty => None,
             Link::More(boxed_node) => {
@@ -54,13 +54,13 @@ impl List {
     }
 }
 
-impl Default for List {
+impl<T> Default for List<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Drop for List {
+impl<T> Drop for List<T> {
     fn drop(&mut self) {
         let mut it = mem::replace(&mut self.head, Link::Empty);
         while let Link::More(mut boxed_node) = it {
@@ -75,15 +75,15 @@ mod tests {
 
     #[test]
     fn simple() {
-        let mut xs = List::new();
+        let mut xs = List::<i32>::new();
 
         assert_eq!(0, xs.len());
         assert!(xs.is_empty());
         assert_eq!(xs.pop(), None);
 
         let vec = vec![1, 2, 3];
-        for i in &vec {
-            xs.push(*i);
+        for &i in &vec {
+            xs.push(i);
         }
 
         assert_eq!(xs.pop(), Some(3));
@@ -95,6 +95,32 @@ mod tests {
         assert_eq!(xs.pop(), Some(5));
         assert_eq!(xs.pop(), Some(4));
         assert_eq!(xs.pop(), Some(1));
+        assert_eq!(xs.pop(), None);
+    }
+
+    #[derive(PartialEq, Debug)]
+    struct Hello {
+        id: usize,
+    }
+
+    impl Hello {
+        pub fn new(id: usize) -> Self {
+            Hello { id: id }
+        }
+    }
+
+    #[test]
+    fn objects() {
+        let mut xs = List::<Hello>::new();
+        assert_eq!(xs.pop(), None);
+
+        let vec = vec![1, 2];
+        for &i in &vec {
+            xs.push(Hello::new(i));
+        }
+
+        assert_eq!(xs.pop(), Some(Hello::new(2)));
+        assert_eq!(xs.pop(), Some(Hello::new(1)));
         assert_eq!(xs.pop(), None);
     }
 }
