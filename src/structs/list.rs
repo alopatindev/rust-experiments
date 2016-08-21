@@ -112,7 +112,6 @@ mod tests {
     #[test]
     fn objects() {
         let mut xs = List::<Hello>::new();
-        assert_eq!(xs.pop(), None);
 
         let vec = vec![1, 2];
         for &i in &vec {
