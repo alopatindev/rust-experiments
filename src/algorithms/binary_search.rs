@@ -63,61 +63,61 @@ mod tests {
     }
 
     /// works on `x86_64` Linux after `echo -n 1 > /proc/sys/vm/overcommit_memory`
-    #[test]
-    #[ignore]
-    #[allow(transmute_ptr_to_ref)]
-    fn heavy() {
-        extern crate libc;
-        use std::{mem, ptr};
-
-        const N: usize = ((1usize << 46) + (1usize << 44));
-
-        type T = i8;
-        let tsize: usize = mem::size_of::<T>();
-
-        let last_array_index = N - 1;
-        let last_byte_offset: usize = (N - 1) * tsize;
-        let last_item: T = 120;
-
-        let offset0: usize = last_byte_offset / 2;
-        let offset1: isize = offset0 as isize;
-        let offset2: isize = (last_byte_offset - offset0) as isize;
-
-        unsafe {
-            println!("trying to allocate {} bytes (~{} GiB) for {} items",
-                     tsize * N,
-                     (tsize * N) as f64 / 1073741824.0,
-                     N);
-
-            let p: *mut libc::c_void = libc::calloc(tsize, N);
-            mem::forget(p);
-
-            if p.is_null() {
-                panic!("cannot allocate memory");
-            }
-
-            println!("adding to vec");
-            let p_to_last = p.offset(offset1).offset(offset2);
-            ptr::write(p_to_last as *mut T, last_item);
-
-            let a: &[T; N] = mem::transmute(p);
-            assert_eq!(a.len(), N);
-
-            assert_eq!(binary_search(a, &last_item), Some(last_array_index));
-            assert_eq!(binary_search(a, &(-10)), None);
-            assert_eq!(binary_search(a, &12), None);
-            assert_eq!(binary_search(a, &80), None);
-            assert_eq!(binary_search(a, &90), None);
-            assert_eq!(binary_search(a, &100), None);
-            assert_eq!(binary_search(a, &110), None);
-            assert_eq!(binary_search(a, &126), None);
-            assert_eq!(binary_search(a, &127), None);
-
-            libc::free(p);
-        }
-
-        println!("success!");
-    }
+    // #[test]
+    // #[ignore]
+    // #[allow(transmute_ptr_to_ref)]
+    // fn heavy() {
+    //     extern crate libc;
+    //     use std::{mem, ptr};
+    //
+    //     const N: usize = ((1usize << 46) + (1usize << 44));
+    //
+    //     type T = i8;
+    //     let tsize: usize = mem::size_of::<T>();
+    //
+    //     let last_array_index = N - 1;
+    //     let last_byte_offset: usize = (N - 1) * tsize;
+    //     let last_item: T = 120;
+    //
+    //     let offset0: usize = last_byte_offset / 2;
+    //     let offset1: isize = offset0 as isize;
+    //     let offset2: isize = (last_byte_offset - offset0) as isize;
+    //
+    //     unsafe {
+    //         println!("trying to allocate {} bytes (~{} GiB) for {} items",
+    //                  tsize * N,
+    //                  (tsize * N) as f64 / 1073741824.0,
+    //                  N);
+    //
+    //         let p: *mut libc::c_void = libc::calloc(tsize, N);
+    //         mem::forget(p);
+    //
+    //         if p.is_null() {
+    //             panic!("cannot allocate memory");
+    //         }
+    //
+    //         println!("adding to vec");
+    //         let p_to_last = p.offset(offset1).offset(offset2);
+    //         ptr::write(p_to_last as *mut T, last_item);
+    //
+    //         let a: &[T; N] = mem::transmute(p);
+    //         assert_eq!(a.len(), N);
+    //
+    //         assert_eq!(binary_search(a, &last_item), Some(last_array_index));
+    //         assert_eq!(binary_search(a, &(-10)), None);
+    //         assert_eq!(binary_search(a, &12), None);
+    //         assert_eq!(binary_search(a, &80), None);
+    //         assert_eq!(binary_search(a, &90), None);
+    //         assert_eq!(binary_search(a, &100), None);
+    //         assert_eq!(binary_search(a, &110), None);
+    //         assert_eq!(binary_search(a, &126), None);
+    //         assert_eq!(binary_search(a, &127), None);
+    //
+    //         libc::free(p);
+    //     }
+    //
+    //     println!("success!");
+    // }
 
     fn make_random_sorted_vec(n: usize) -> Vec<i32> {
         let mut a = vec![0; n];
