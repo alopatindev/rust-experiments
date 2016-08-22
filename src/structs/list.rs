@@ -93,36 +93,36 @@ mod tests {
         assert_eq!(0, xs.len());
         assert!(xs.is_empty());
 
-        assert_eq!(xs.peek(), None);
-        assert_eq!(xs.pop(), None);
+        assert_eq!(None, xs.peek());
+        assert_eq!(None, xs.pop());
 
         let vec = vec![1, 2, 3];
         for &i in &vec {
             xs.push(i);
         }
 
-        assert_eq!(xs.peek(), Some(&3));
+        assert_eq!(Some(&3), xs.peek());
 
-        assert_eq!(xs.pop(), Some(3));
-        assert_eq!(xs.pop(), Some(2));
+        assert_eq!(Some(3), xs.pop());
+        assert_eq!(Some(2), xs.pop());
 
         xs.push(4);
         xs.push(5);
 
-        assert_eq!(xs.peek(), Some(&5));
-        assert_eq!(xs.peek_mut(), Some(&mut 5));
+        assert_eq!(Some(&5), xs.peek());
+        assert_eq!(Some(&mut 5), xs.peek_mut());
 
         xs.peek_mut().map(|mut data| {
             *data = 55;
         });
-        assert_eq!(xs.peek(), Some(&55));
-        assert_eq!(xs.pop(), Some(55));
+        assert_eq!(Some(&55), xs.peek());
+        assert_eq!(Some(55), xs.pop());
 
-        assert_eq!(xs.pop(), Some(4));
-        assert_eq!(xs.pop(), Some(1));
-        assert_eq!(xs.pop(), None);
+        assert_eq!(Some(4), xs.pop());
+        assert_eq!(Some(1), xs.pop());
+        assert_eq!(None, xs.pop());
 
-        assert_eq!(xs.peek(), None);
+        assert_eq!(None, xs.peek());
     }
 
     #[test]
@@ -135,10 +135,10 @@ mod tests {
         }
 
         let mut iter = xs.into_iter();
-        assert_eq!(iter.next(), Some(3));
-        assert_eq!(iter.next(), Some(2));
-        assert_eq!(iter.next(), Some(1));
-        assert_eq!(iter.next(), None);
+        assert_eq!(Some(3), iter.next());
+        assert_eq!(Some(2), iter.next());
+        assert_eq!(Some(1), iter.next());
+        assert_eq!(None, iter.next());
     }
 
     #[derive(PartialEq, Debug)]
@@ -163,8 +163,8 @@ mod tests {
             xs.push(Hello::new(i));
         }
 
-        assert_eq!(xs.pop(), Some(Hello::new(2)));
-        assert_eq!(xs.pop(), Some(Hello::new(1)));
-        assert_eq!(xs.pop(), None);
+        assert_eq!(Some(Hello::new(2)), xs.pop());
+        assert_eq!(Some(Hello::new(1)), xs.pop());
+        assert_eq!(None, xs.pop());
     }
 }
