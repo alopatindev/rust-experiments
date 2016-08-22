@@ -53,3 +53,12 @@ impl<'a> DoubleEndedIterator for BitSetIterator<'a> {
         previous
     }
 }
+
+impl BitSet {
+    pub fn iter(&self) -> BitSetIterator {
+        BitSetIterator {
+            set: self,
+            index: 0,
+        }
+    }
+}

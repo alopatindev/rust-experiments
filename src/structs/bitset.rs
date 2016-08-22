@@ -70,13 +70,6 @@ impl BitSet {
         }
     }
 
-    pub fn iter(&self) -> BitSetIterator {
-        BitSetIterator {
-            set: self,
-            index: 0,
-        }
-    }
-
     fn bucket_size_in_bits(&self) -> usize {
         let bucket_size = mem::size_of::<usize>();
         bucket_size * 8

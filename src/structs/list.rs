@@ -48,14 +48,6 @@ impl<T> List<T> {
     // pub fn take(&self, n: usize) -> Self {
     //    unimplemented!()
     // }
-
-    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
-        Iter {
-            next: self.head
-                      .as_ref()
-                      .map(|rc_node| &**rc_node),
-        }
-    }
 }
 
 #[cfg(test)]
