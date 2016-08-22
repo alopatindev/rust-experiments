@@ -1,30 +1,31 @@
 use std::rc::Rc;
 
-pub struct List<T> {
+pub struct List<T: Clone> {
     head: Link<T>,
 }
 
 type Link<T> = Option<Rc<Node<T>>>;
 
-struct Node<T> {
+struct Node<T: Clone> {
     data: T,
     next: Link<T>,
 }
 
 include!("list_iterators.rs");
 
-impl<T> List<T> {
+impl<T: Clone> List<T> {
     pub fn new() -> Self {
         List { head: None }
     }
 
     pub fn append(&self, data: T) -> Self {
-        List {
-            head: Some(Rc::new(Node {
-                data: data,
-                next: self.head.clone(),
-            })),
-        }
+        let node = Node {
+            data: data,
+            next: self.head.clone(),
+        };
+
+        let head = Some(Rc::new(node));
+        List { head: head }
     }
 
     pub fn tail(&self) -> Self {
@@ -44,6 +45,7 @@ impl<T> List<T> {
     pub fn skip(&self, n: usize) -> Self {
         let mut head = self.head.as_ref();
         let mut i = 0;
+
         while let Some(rc_node) = head {
             if i < n {
                 head = rc_node.next.as_ref();
@@ -52,15 +54,33 @@ impl<T> List<T> {
                 return List { head: Some(rc_node.clone()) };
             }
         }
+
         List::new()
     }
 
-    // pub fn take(&self, n: usize) -> Self {
-    //    unimplemented!()
-    // }
+    pub fn take(&self, n: usize) -> Self {
+        let mut xs = List::new();
+        let mut i = 0;
+
+        for it in self.iter() {
+            if i < n {
+                xs = xs.append(it.clone());
+                i += 1;
+            } else {
+                break;
+            }
+        }
+
+        let mut ys = List::new();
+        for it in xs.iter() {
+            ys = ys.append(it.clone());
+        }
+
+        ys
+    }
 }
 
-impl<T> Drop for List<T> {
+impl<T: Clone> Drop for List<T> {
     fn drop(&mut self) {
         let mut head = self.head.take();
         while let Some(rc_node) = head {
@@ -97,12 +117,12 @@ mod tests {
         assert_eq!(Some(&1), xs.skip(2).head());
         assert_eq!(None, xs.skip(3).head());
 
-        // assert_eq!(None, xs.take(0).head());
-        // assert_eq!(Some(&3), xs.take(1).head());
-        // assert_eq!(None, xs.take(1).tail().head());
-        // assert_eq!(Some(&3), xs.take(2).head());
-        // assert_eq!(Some(&2), xs.take(2).tail().head());
-        // assert_eq!(None, xs.take(2).tail().tail().head());
+        assert_eq!(None, xs.take(0).head());
+        assert_eq!(Some(&3), xs.take(1).head());
+        assert_eq!(None, xs.take(1).tail().head());
+        assert_eq!(Some(&3), xs.take(2).head());
+        assert_eq!(Some(&2), xs.take(2).tail().head());
+        assert_eq!(None, xs.take(2).tail().tail().head());
 
         let mut iter = xs.iter();
         assert_eq!(Some(&3), iter.next());

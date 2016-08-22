@@ -1,8 +1,8 @@
-pub struct Iter<'a, T: 'a> {
+pub struct Iter<'a, T: 'a + Clone> {
     next: Option<&'a Node<T>>,
 }
 
-impl<'a, T> Iterator for Iter<'a, T> {
+impl<'a, T: Clone> Iterator for Iter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -13,7 +13,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
     }
 }
 
-impl<T> List<T> {
+impl<T: Clone> List<T> {
     pub fn iter<'a>(&'a self) -> Iter<'a, T> {
         Iter {
             next: self.head
