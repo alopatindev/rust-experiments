@@ -10,6 +10,8 @@ struct Node<T> {
     next: Link<T>,
 }
 
+include!("list_iterators.rs");
+
 impl<T> List<T> {
     pub fn new() -> Self {
         List {
@@ -56,6 +58,10 @@ impl<T> List<T> {
     pub fn into_iter(self) -> IntoIter<T> {
         IntoIter(self)
     }
+
+    pub fn iter(&self) -> Iter<T> {
+        Iter { next: self.head.as_ref().map(|boxed_node| &**boxed_node) }
+    }
 }
 
 impl<T> Default for List<T> {
@@ -70,15 +76,6 @@ impl<T> Drop for List<T> {
         while let Some(mut boxed_node) = link {
             link = boxed_node.next.take();
         }
-    }
-}
-
-pub struct IntoIter<T>(List<T>);
-
-impl<T> Iterator for IntoIter<T> {
-    type Item = T;
-    fn next(&mut self) -> Option<T> {
-        self.0.pop()
     }
 }
 
@@ -138,6 +135,22 @@ mod tests {
         assert_eq!(Some(3), iter.next());
         assert_eq!(Some(2), iter.next());
         assert_eq!(Some(1), iter.next());
+        assert_eq!(None, iter.next());
+    }
+
+    #[test]
+    fn iter() {
+        let mut xs = List::new();
+
+        let vec = vec![1, 2, 3];
+        for &i in &vec {
+            xs.push(i);
+        }
+
+        let mut iter = xs.iter();
+        assert_eq!(Some(&3), iter.next());
+        assert_eq!(Some(&2), iter.next());
+        assert_eq!(Some(&1), iter.next());
         assert_eq!(None, iter.next());
     }
 
