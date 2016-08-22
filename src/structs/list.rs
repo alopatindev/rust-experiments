@@ -37,6 +37,14 @@ impl<T> List<T> {
         })
     }
 
+    pub fn peek(&self) -> Option<&T> {
+        self.head.as_ref().map(|boxed_node| &boxed_node.data)
+    }
+
+    pub fn peek_mut(&mut self) -> Option<&mut T> {
+        self.head.as_mut().map(|boxed_node| &mut boxed_node.data)
+    }
+
     pub fn len(&self) -> usize {
         self.size
     }
@@ -71,6 +79,8 @@ mod tests {
 
         assert_eq!(0, xs.len());
         assert!(xs.is_empty());
+
+        assert_eq!(xs.peek(), None);
         assert_eq!(xs.pop(), None);
 
         let vec = vec![1, 2, 3];
@@ -78,16 +88,28 @@ mod tests {
             xs.push(i);
         }
 
+        assert_eq!(xs.peek(), Some(&3));
+
         assert_eq!(xs.pop(), Some(3));
         assert_eq!(xs.pop(), Some(2));
 
         xs.push(4);
         xs.push(5);
 
-        assert_eq!(xs.pop(), Some(5));
+        assert_eq!(xs.peek(), Some(&5));
+        assert_eq!(xs.peek_mut(), Some(&mut 5));
+
+        xs.peek_mut().map(|mut data| {
+            *data = 55;
+        });
+        assert_eq!(xs.peek(), Some(&55));
+        assert_eq!(xs.pop(), Some(55));
+
         assert_eq!(xs.pop(), Some(4));
         assert_eq!(xs.pop(), Some(1));
         assert_eq!(xs.pop(), None);
+
+        assert_eq!(xs.peek(), None);
     }
 
     #[derive(PartialEq, Debug)]
