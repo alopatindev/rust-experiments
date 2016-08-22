@@ -62,6 +62,10 @@ impl<T> List<T> {
     pub fn iter(&self) -> Iter<T> {
         Iter { next: self.head.as_ref().map(|boxed_node| &**boxed_node) }
     }
+
+    pub fn iter_mut(&mut self) -> IterMut<T> {
+        IterMut { next: self.head.as_mut().map(|boxed_node| &mut **boxed_node) }
+    }
 }
 
 impl<T> Default for List<T> {
@@ -152,6 +156,38 @@ mod tests {
         assert_eq!(Some(&2), iter.next());
         assert_eq!(Some(&1), iter.next());
         assert_eq!(None, iter.next());
+    }
+
+    #[test]
+    fn iter_mut() {
+        let mut xs = List::new();
+
+        let vec = vec![1, 2, 3];
+        for &i in &vec {
+            xs.push(i);
+        }
+
+        {
+            let mut iter = xs.iter_mut();
+            assert_eq!(Some(&mut 3), iter.next());
+
+            match iter.next() {
+                Some(mut x) => {
+                    assert_eq!(&2, x);
+                    *x = 55;
+                }
+                None => unreachable!(),
+            }
+
+            assert_eq!(Some(&mut 1), iter.next());
+            assert_eq!(None, iter.next());
+        }
+
+        {
+            let mut iter = xs.iter_mut();
+            let _ = iter.next();
+            assert_eq!(Some(&mut 55), iter.next());
+        }
     }
 
     #[derive(PartialEq, Debug)]
