@@ -9,6 +9,7 @@ type Link<T> = Option<Rc<Node<T>>>;
 struct Node<T: Clone> {
     data: T,
     next: Link<T>,
+    size: usize,
 }
 
 include!("list_iterators.rs");
@@ -22,6 +23,7 @@ impl<T: Clone> List<T> {
         let node = Node {
             data: data,
             next: self.head.clone(),
+            size: self.len(),
         };
 
         let head = Some(Rc::new(node));
@@ -40,6 +42,16 @@ impl<T: Clone> List<T> {
         self.head
             .as_ref()
             .map(|rc_node| &rc_node.data)
+    }
+
+    pub fn len(&self) -> usize {
+        self.head
+            .as_ref()
+            .map_or_else(|| 0, |rc_node| rc_node.size + 1)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn skip(&self, n: usize) -> Self {
@@ -101,10 +113,18 @@ mod tests {
     fn simple() {
         let empty = List::new();
         assert_eq!(None, empty.head());
+        assert_eq!(0, empty.len());
+        assert!(empty.is_empty());
 
         let xs = empty.append(1)
                       .append(2)
                       .append(3);
+
+        assert_eq!(false, xs.is_empty());
+        assert_eq!(3, xs.len());
+        assert_eq!(2, xs.tail().len());
+        assert_eq!(1, xs.tail().tail().len());
+        assert_eq!(0, xs.tail().tail().tail().len());
 
         assert_eq!(Some(&3), xs.head());
         assert_eq!(Some(&2), xs.tail().head());
