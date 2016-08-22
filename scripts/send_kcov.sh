@@ -6,6 +6,7 @@ ORIGIN="${PKGID%#*}"
 ORIGIN="${ORIGIN:7}"
 PKGNAMEVER="${PKGID#*#}"
 PKGNAME="$(echo $ORIGIN | sed 's!.*\/!!')"
+PKGNAME="$(echo $PKGNAME | sed 's!-!_!')" # FIXME
 shift
 cargo test --no-run || exit $?
 EXE=($ORIGIN/target/debug/$PKGNAME-*)
