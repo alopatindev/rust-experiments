@@ -52,6 +52,10 @@ impl<T> List<T> {
     pub fn is_empty(&self) -> bool {
         self.size == 0
     }
+
+    pub fn into_iter(self) -> IntoIter<T> {
+        IntoIter(self)
+    }
 }
 
 impl<T> Default for List<T> {
@@ -66,6 +70,15 @@ impl<T> Drop for List<T> {
         while let Some(mut boxed_node) = link {
             link = boxed_node.next.take();
         }
+    }
+}
+
+pub struct IntoIter<T>(List<T>);
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<T> {
+        self.0.pop()
     }
 }
 
@@ -110,6 +123,22 @@ mod tests {
         assert_eq!(xs.pop(), None);
 
         assert_eq!(xs.peek(), None);
+    }
+
+    #[test]
+    fn into_iter() {
+        let mut xs = List::new();
+
+        let vec = vec![1, 2, 3];
+        for &i in &vec {
+            xs.push(i);
+        }
+
+        let mut iter = xs.into_iter();
+        assert_eq!(iter.next(), Some(3));
+        assert_eq!(iter.next(), Some(2));
+        assert_eq!(iter.next(), Some(1));
+        assert_eq!(iter.next(), None);
     }
 
     #[derive(PartialEq, Debug)]
