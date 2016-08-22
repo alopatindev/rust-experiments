@@ -1,48 +1,40 @@
-use std::mem;
-
 pub struct List<T> {
     head: Link<T>,
     size: usize,
 }
 
-enum Link<T> {
-    Empty,
-    More(Box<Node<T>>),
-}
+type Link<T> = Option<Box<Node<T>>>;
 
 struct Node<T> {
-    elem: T,
+    data: T,
     next: Link<T>,
 }
 
 impl<T> List<T> {
     pub fn new() -> Self {
         List {
-            head: Link::Empty,
+            head: None,
             size: 0,
         }
     }
 
-    pub fn push(&mut self, elem: T) {
+    pub fn push(&mut self, data: T) {
         let new_node = Box::new(Node {
-            elem: elem,
-            next: mem::replace(&mut self.head, Link::Empty),
+            data: data,
+            next: self.head.take(),
         });
 
-        self.head = Link::More(new_node);
+        self.head = Some(new_node);
         self.size += 1;
     }
 
     pub fn pop(&mut self) -> Option<T> {
-        match mem::replace(&mut self.head, Link::Empty) {
-            Link::Empty => None,
-            Link::More(boxed_node) => {
-                let node = *boxed_node;
-                self.head = node.next;
-                self.size -= 1;
-                Some(node.elem)
-            }
-        }
+        self.head.take().map(|boxed_node| {
+            let node = *boxed_node;
+            self.head = node.next;
+            self.size -= 1;
+            node.data
+        })
     }
 
     pub fn len(&self) -> usize {
@@ -62,9 +54,9 @@ impl<T> Default for List<T> {
 
 impl<T> Drop for List<T> {
     fn drop(&mut self) {
-        let mut it = mem::replace(&mut self.head, Link::Empty);
-        while let Link::More(mut boxed_node) = it {
-            it = mem::replace(&mut boxed_node.next, Link::Empty);
+        let mut link = self.head.take();
+        while let Some(mut boxed_node) = link {
+            link = boxed_node.next.take();
         }
     }
 }
