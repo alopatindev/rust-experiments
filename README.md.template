@@ -2,4 +2,4 @@
 [![Coverage Status](https://coveralls.io/repos/github/alopatindev/rust-experiments/badge.svg?branch=master)](https://coveralls.io/github/alopatindev/rust-experiments?branch=master)
 [![codecov.io](http://codecov.io/github/alopatindev/rust-experiments/coverage.svg?branch=master)](https://codecov.io/github/alopatindev/rust-experiments?branch=master)
 
-"Hello Worlds" in Rust
+"Hello Worlds" in Rust. Licensed under the terms of MIT (read LICENSE.txt for details).

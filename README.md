@@ -2,7 +2,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/alopatindev/rust-experiments/badge.svg?branch=master)](https://coveralls.io/github/alopatindev/rust-experiments?branch=master)
 [![codecov.io](http://codecov.io/github/alopatindev/rust-experiments/coverage.svg?branch=master)](https://codecov.io/github/alopatindev/rust-experiments?branch=master)
 
-"Hello Worlds" in Rust
+"Hello Worlds" in Rust. Licensed under the terms of MIT (read LICENSE.txt for details).
 * algorithms/binary_search.rs
 * algorithms/bubble_sort.rs
 * algorithms/insertion_sort.rs
@@ -17,6 +17,7 @@
 * encoding/unicode.rs
 * structs/bitset_iterators.rs
 * structs/bitset.rs
+* structs/dequeue.rs
 * structs/list_iterators.rs
 * structs/list_mut_iterators.rs
 * structs/list_mut.rs
