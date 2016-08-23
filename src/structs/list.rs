@@ -1,12 +1,12 @@
 use std::rc::Rc;
 
-pub struct List<T: Clone> {
+pub struct List<T: Clone + PartialEq> {
     head: Link<T>,
 }
 
 type Link<T> = Option<Rc<Node<T>>>;
 
-struct Node<T: Clone> {
+struct Node<T: Clone + PartialEq> {
     data: T,
     next: Link<T>,
     size: usize,
@@ -14,7 +14,7 @@ struct Node<T: Clone> {
 
 include!("list_iterators.rs");
 
-impl<T: Clone> List<T> {
+impl<T: Clone + PartialEq> List<T> {
     pub fn new() -> Self {
         List { head: None }
     }
@@ -52,6 +52,13 @@ impl<T: Clone> List<T> {
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    pub fn contains(&self, data: T) -> bool {
+        self.iter()
+            .filter(|&d| *d == data)
+            .next()
+            .is_some()
     }
 
     pub fn skip(&self, n: usize) -> Self {
@@ -92,7 +99,7 @@ impl<T: Clone> List<T> {
     }
 }
 
-impl<T: Clone> Drop for List<T> {
+impl<T: Clone + PartialEq> Drop for List<T> {
     fn drop(&mut self) {
         let mut head = self.head.take();
         while let Some(rc_node) = head {
@@ -143,6 +150,11 @@ mod tests {
         assert_eq!(Some(&3), xs.take(2).head());
         assert_eq!(Some(&2), xs.take(2).tail().head());
         assert_eq!(None, xs.take(2).tail().tail().head());
+
+        assert!(xs.contains(1));
+        assert!(xs.contains(2));
+        assert!(xs.contains(3));
+        assert!(!xs.contains(4));
 
         let mut iter = xs.iter();
         assert_eq!(Some(&3), iter.next());
