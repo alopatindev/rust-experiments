@@ -1,10 +1,10 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct List<T: Clone + PartialEq> {
     head: Link<T>,
 }
 
-type Link<T> = Option<Rc<Node<T>>>;
+type Link<T> = Option<Arc<Node<T>>>;
 
 struct Node<T: Clone + PartialEq> {
     data: T,
@@ -26,7 +26,7 @@ impl<T: Clone + PartialEq> List<T> {
             size: self.len(),
         };
 
-        let head = Some(Rc::new(node));
+        let head = Some(Arc::new(node));
         List { head: head }
     }
 
@@ -103,7 +103,7 @@ impl<T: Clone + PartialEq> Drop for List<T> {
     fn drop(&mut self) {
         let mut head = self.head.take();
         while let Some(rc_node) = head {
-            if let Ok(mut node) = Rc::try_unwrap(rc_node) {
+            if let Ok(mut node) = Arc::try_unwrap(rc_node) {
                 head = node.next.take();
             } else {
                 break;
@@ -115,6 +115,7 @@ impl<T: Clone + PartialEq> Drop for List<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::thread;
 
     #[test]
     fn simple() {
@@ -161,5 +162,29 @@ mod tests {
         assert_eq!(Some(&2), iter.next());
         assert_eq!(Some(&1), iter.next());
         assert_eq!(None, iter.next());
+    }
+
+    #[test]
+    fn threaded() {
+        let mut a_workers = vec![];
+        let mut b_workers = vec![];
+
+        for i in 0..10 {
+            let xs = List::<i32>::new().append(i);
+            let a = thread::spawn(move || xs.append(i + 1));
+            a_workers.push(a);
+        }
+
+        for w in a_workers {
+            let xs = w.join().unwrap();
+            let b = thread::spawn(move || xs.append(5));
+            b_workers.push(b);
+        }
+
+        for w in b_workers {
+            let xs = w.join().unwrap();
+            assert_eq!(3, xs.len());
+            assert!(xs.contains(5));
+        }
     }
 }
