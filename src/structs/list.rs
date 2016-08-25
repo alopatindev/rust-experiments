@@ -33,8 +33,8 @@ impl<T: Clone + PartialEq> List<T> {
     pub fn tail(&self) -> Self {
         List {
             head: self.head
-                      .as_ref()
-                      .and_then(|rc_node| rc_node.next.clone()),
+                .as_ref()
+                .and_then(|rc_node| rc_node.next.clone()),
         }
     }
 
@@ -114,8 +114,8 @@ impl<T: Clone + PartialEq> Drop for List<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::thread;
+    use super::*;
 
     #[test]
     fn simple() {
@@ -125,8 +125,8 @@ mod tests {
         assert!(empty.is_empty());
 
         let xs = empty.append(1)
-                      .append(2)
-                      .append(3);
+            .append(2)
+            .append(3);
 
         assert_eq!(false, xs.is_empty());
         assert_eq!(3, xs.len());

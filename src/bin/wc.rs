@@ -1,9 +1,9 @@
 extern crate getopts;
 
 extern crate rust_experiments;
-use rust_experiments::cli::wc;
 
 use getopts::{Matches, Options};
+use rust_experiments::cli::wc;
 use std::env;
 use std::fs::File;
 use std::io::{Read, stdin};

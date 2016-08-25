@@ -1,9 +1,9 @@
 extern crate getopts;
 
 extern crate rust_experiments;
-use rust_experiments::cli::wget::Downloader;
 
 use getopts::Options;
+use rust_experiments::cli::wget::Downloader;
 use std::env;
 
 const HELP_OPTION: &'static str = "h";

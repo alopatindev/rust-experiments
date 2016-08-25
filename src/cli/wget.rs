@@ -2,17 +2,17 @@ extern crate hyper;
 extern crate time;
 
 use format::size_to_human_readable;
-use terminal::{clear_current_line, progress_bar};
-
-use std::fs::File;
-use std::io;
-use std::io::prelude::*;
-use std::path::Path;
 use self::hyper::{Client, Url};
 use self::hyper::client::Response;
 use self::hyper::error;
 use self::hyper::header::{ContentLength, Headers};
 use self::hyper::status::StatusCode;
+
+use std::fs::File;
+use std::io;
+use std::io::prelude::*;
+use std::path::Path;
+use terminal::{clear_current_line, progress_bar};
 
 const BUFFER_SIZE: usize = 4096;
 const STATS_UPDATE_TIMEOUT: f64 = 0.5;

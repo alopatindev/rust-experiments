@@ -2,10 +2,10 @@ extern crate getopts;
 extern crate notify;
 
 extern crate rust_experiments;
-use rust_experiments::cli::tail::tail;
 
 use getopts::Options;
 use notify::{RecommendedWatcher, Watcher};
+use rust_experiments::cli::tail::tail;
 use std::env;
 use std::fs::File;
 use std::io::{Write, stdin, stdout};

@@ -113,11 +113,7 @@ impl BitSet {
 
     fn next_bit(&self, from_index: usize, pattern: bool) -> Option<usize> {
         if from_index < usize::max_value() {
-            let pattern = if pattern {
-                1
-            } else {
-                0
-            };
+            let pattern = if pattern { 1 } else { 0 };
 
             let mut index = from_index + 1;
             loop {
@@ -142,11 +138,7 @@ impl BitSet {
 
     fn previous_bit(&self, from_index: usize, pattern: bool) -> Option<usize> {
         if from_index > 0 {
-            let pattern = if pattern {
-                1
-            } else {
-                0
-            };
+            let pattern = if pattern { 1 } else { 0 };
 
             let mut index = from_index - 1;
             loop {
@@ -170,16 +162,16 @@ impl BitSet {
 impl fmt::Display for BitSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let items: Vec<String> = self.iter()
-                                     .map(|i| i.to_string())
-                                     .collect();
+            .map(|i| i.to_string())
+            .collect();
         write!(f, "{{{}}}", items.join(","))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::collections::HashSet;
+    use super::*;
 
     const N: usize = 2048;
 
@@ -187,8 +179,8 @@ mod tests {
     fn empty() {
         let b: BitSet = BitSet::new();
         let is_empty_set: bool = (0..N)
-                                     .filter(|i: &usize| b.contains(*i))
-                                     .count() == 0;
+            .filter(|i: &usize| b.contains(*i))
+            .count() == 0;
         assert!(is_empty_set && b.is_empty());
     }
 
@@ -198,8 +190,8 @@ mod tests {
             let mut b: BitSet = BitSet::new();
             b.insert(i);
             let xs: Vec<usize> = (0..N)
-                                     .filter(|j: &usize| b.contains(*j))
-                                     .collect();
+                .filter(|j: &usize| b.contains(*j))
+                .collect();
             let contains_single_item_only = xs.len() == 1 && xs[0] == i;
             assert!(contains_single_item_only);
         }

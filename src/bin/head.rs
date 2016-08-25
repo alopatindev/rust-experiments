@@ -1,9 +1,9 @@
 extern crate getopts;
 
 extern crate rust_experiments;
-use rust_experiments::cli::head::head;
 
 use getopts::Options;
+use rust_experiments::cli::head::head;
 use std::env;
 use std::fs::File;
 use std::io::{stdin, stdout};

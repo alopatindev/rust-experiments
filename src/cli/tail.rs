@@ -1,5 +1,6 @@
-use std::io::{Read, Write};
+
 use std::collections::VecDeque;
+use std::io::{Read, Write};
 
 const BUFFER_SIZE: usize = 4096;
 const FLUSH_AFTER_LINE: usize = 25;
