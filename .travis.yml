@@ -18,7 +18,6 @@ matrix:
 before_script: (cargo install rustfmt || true)
 script:
   - export PATH="${PATH}:${HOME}/.cargo/bin"
-  - echo $PATH
   - cargo fmt -- --write-mode=diff
   - cargo test --verbose
   - cargo run --verbose --bin hello
@@ -26,6 +25,10 @@ script:
   - cargo run --verbose --bin head -- -n100 /var/log/dpkg.log
   - cargo run --verbose --bin tail -- -h
   - cargo run --verbose --bin tail -- -n100 /var/log/dpkg.log
+  - cargo run --verbose --bin wc -- -h
+  - cargo run --verbose --bin wc -- /var/log/dpkg.log
+  - cargo run --verbose --bin wget -- -h
+  - cargo run --verbose --bin wget -- 'https://www.rust-lang.org'
   - cargo bench
 after_success:
   - scripts/build_kcov.sh
