@@ -3,9 +3,12 @@ use std::{fmt, mem};
 
 include!("bitset_iterators.rs");
 
+type Bucket = usize;
+const ONE: Bucket = 1 as Bucket;
+
 #[derive(Default)]
 pub struct BitSet {
-    buckets: Vec<usize>, // 0th bucket is the lowest
+    buckets: Vec<Bucket>, // 0th bucket is the lowest
     size: usize,
 }
 
@@ -45,7 +48,7 @@ impl BitSet {
         if !self.contains(index) {
             self.maybe_grow_buckets(index);
             let (bucket_index, bit_index) = self.split_index(index);
-            let bit = 1usize << bit_index;
+            let bit = ONE << bit_index;
             self.buckets[bucket_index] |= bit;
             self.size += 1;
         }
@@ -54,7 +57,7 @@ impl BitSet {
     pub fn remove(&mut self, index: usize) {
         if self.contains(index) {
             let (bucket_index, bit_index) = self.split_index(index);
-            let mask = !(1usize << bit_index);
+            let mask = !(ONE << bit_index);
             self.buckets[bucket_index] &= mask;
             self.size -= 1;
         }
@@ -65,13 +68,13 @@ impl BitSet {
             false
         } else {
             let (bucket_index, bit_index) = self.split_index(index);
-            let bit = 1usize << bit_index;
+            let bit = ONE << bit_index;
             (self.buckets[bucket_index] & bit) > 0
         }
     }
 
     fn bucket_size_in_bits(&self) -> usize {
-        let bucket_size = mem::size_of::<usize>();
+        let bucket_size = mem::size_of::<Bucket>();
         bucket_size * 8
     }
 
@@ -112,46 +115,57 @@ impl BitSet {
     }
 
     fn next_bit(&self, from_index: usize, pattern: bool) -> Option<usize> {
-        if from_index < usize::max_value() {
-            let pattern = if pattern { 1 } else { 0 };
+        if from_index == usize::max_value() {
+            return None;
+        }
 
-            let mut index = from_index + 1;
-            loop {
-                let (bucket_index, bit_index) = self.split_index(index);
-                if bucket_index >= self.buckets.len() {
-                    break;
-                }
+        let next_index = from_index + 1;
+
+        if next_index > self.max_index() {
+            return if pattern { None } else { Some(next_index) };
+        }
+
+        let pattern_bit = pattern as Bucket;
+
+        for i in next_index..(self.max_index() + 1) {
+            let (bucket_index, bit_index) = self.split_index(i);
+            let found = if bucket_index < self.buckets.len() {
                 let rest_of_bits = self.buckets[bucket_index] >> bit_index;
-                let found = (rest_of_bits & 1) == pattern;
-                if found {
-                    return Some(index);
-                } else if index < self.max_index() {
-                    index += 1;
-                } else {
-                    break;
-                }
+                (rest_of_bits & ONE) == pattern_bit
+            } else {
+                !pattern
+            };
+
+            if found {
+                return Some(i);
             }
         }
 
-        None
+        if pattern {
+            None
+        } else {
+            Some(self.max_index() + 1)
+        }
     }
 
     fn previous_bit(&self, from_index: usize, pattern: bool) -> Option<usize> {
-        if from_index > 0 {
-            let pattern = if pattern { 1 } else { 0 };
+        if from_index == 0 {
+            return None;
+        }
 
-            let mut index = from_index - 1;
-            loop {
-                let (bucket_index, bit_index) = self.split_index(index);
+        let pattern_bit = pattern as Bucket;
+
+        for i in (0..from_index).rev() {
+            let (bucket_index, bit_index) = self.split_index(i);
+            let found = if bucket_index < self.buckets.len() {
                 let rest_of_bits = self.buckets[bucket_index] >> bit_index;
-                let found = rest_of_bits & 1 == pattern;
-                if found {
-                    return Some(index);
-                } else if index > 0 {
-                    index -= 1;
-                } else {
-                    break;
-                }
+                rest_of_bits & ONE == pattern_bit
+            } else {
+                !pattern
+            };
+
+            if found {
+                return Some(i);
             }
         }
 
@@ -302,8 +316,8 @@ mod tests {
         b.remove(1);
         assert_eq!(Some(1), b.next_clear_bit(0));
 
-        assert_eq!(None, b.next_clear_bit(63));
-        assert_eq!(None, b.next_clear_bit(64));
+        assert_eq!(Some(64), b.next_clear_bit(63));
+        assert_eq!(Some(65), b.next_clear_bit(64));
 
         b.insert(64);
         assert_eq!(Some(65), b.next_clear_bit(63));
