@@ -1,4 +1,3 @@
-
 use std::collections::VecDeque;
 use std::io::{Read, Write};
 
@@ -77,11 +76,11 @@ mod tests {
     }
 
     fn tail_assert(expect: &str, text: &str, limit: usize) {
-        let input_take = text.as_bytes().take(text.len() as u64);
-        let mut input = BufReader::new(input_take);
+        let input = text.as_bytes();
+        let mut input = BufReader::new(input);
 
-        let output_vec: Vec<u8> = vec![];
-        let mut output = BufWriter::new(output_vec);
+        let output: Vec<u8> = vec![];
+        let mut output = BufWriter::new(output);
 
         tail(&mut input, output.by_ref(), limit);
         assert_eq!(expect.as_bytes(), &output.get_ref()[..]);
