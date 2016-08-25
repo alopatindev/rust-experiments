@@ -3,12 +3,12 @@ use std::{fmt, mem};
 
 include!("bitset_iterators.rs");
 
-type Bucket = usize;
-const ONE: Bucket = 1 as Bucket;
+pub type B = usize;
+const ONE: B = 1 as B;
 
 #[derive(Default)]
 pub struct BitSet {
-    buckets: Vec<Bucket>, // 0th bucket is the lowest
+    buckets: Vec<B>, // 0th bucket is the lowest
     size: usize,
 }
 
@@ -73,8 +73,12 @@ impl BitSet {
         }
     }
 
+    pub fn as_slice(&self) -> &[B] {
+        self.buckets.as_slice()
+    }
+
     fn bucket_size_in_bits(&self) -> usize {
-        let bucket_size = mem::size_of::<Bucket>();
+        let bucket_size = mem::size_of::<B>();
         bucket_size * 8
     }
 
@@ -125,7 +129,7 @@ impl BitSet {
             return if pattern { None } else { Some(next_index) };
         }
 
-        let pattern_bit = pattern as Bucket;
+        let pattern_bit = pattern as B;
 
         for i in next_index..(self.max_index() + 1) {
             let (bucket_index, bit_index) = self.split_index(i);
@@ -153,7 +157,7 @@ impl BitSet {
             return None;
         }
 
-        let pattern_bit = pattern as Bucket;
+        let pattern_bit = pattern as B;
 
         for i in (0..from_index).rev() {
             let (bucket_index, bit_index) = self.split_index(i);
@@ -209,6 +213,21 @@ mod tests {
             let contains_single_item_only = xs.len() == 1 && xs[0] == i;
             assert!(contains_single_item_only);
         }
+    }
+
+    #[test]
+    fn as_slice() {
+        let mut b: BitSet = BitSet::new();
+
+        b.insert(0);
+        assert_eq!(0b01 as B, b.as_slice()[0]);
+
+        b.insert(1);
+        assert_eq!(0b11 as B, b.as_slice()[0]);
+
+        let first_bit_of_second_bucket = b.bucket_size_in_bits();
+        b.insert(first_bit_of_second_bucket);
+        assert_eq!(0b01 as B, b.as_slice()[1]);
     }
 
     #[test]
