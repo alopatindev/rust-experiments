@@ -385,6 +385,18 @@ mod tests {
         assert_eq!(None, b.next_set_bit(usize::max_value()));
     }
 
+    #[test]
+    fn fmt() {
+        let a = vec![5, 2, 8];
+
+        let mut b: BitSet = BitSet::new();
+        for i in &a {
+            b.insert(*i);
+        }
+
+        assert_eq!("{2,5,8}", format!("{}", b));
+    }
+
     quickcheck! {
         fn random_contains(xs: Vec<usize>) -> bool {
             let mut b: BitSet = BitSet::new();
