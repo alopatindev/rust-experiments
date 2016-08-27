@@ -13,11 +13,11 @@ pub struct Node<T: Clone + PartialEq> {
 }
 
 impl<T: Clone + PartialEq> BinaryTree<T> {
-    pub fn new(data: T, left: BinaryTree<T>, right: BinaryTree<T>) -> Self {
+    pub fn new(data: T, left: &BinaryTree<T>, right: &BinaryTree<T>) -> Self {
         let rc_node = Rc::new(Node {
             data: data,
-            left: left.root,
-            right: right.root,
+            left: left.root.clone(),
+            right: right.root.clone(),
         });
 
         BinaryTree { root: Some(rc_node) }
@@ -35,6 +35,10 @@ impl<T: Clone + PartialEq> BinaryTree<T> {
 
     pub fn from_node(node: &Link<T>) -> BinaryTree<T> {
         BinaryTree { root: node.clone() }
+    }
+
+    pub fn from_tree(tree: &BinaryTree<T>) -> BinaryTree<T> {
+        BinaryTree { root: tree.root.clone() }
     }
 
     pub fn new_empty() -> Self {
@@ -81,8 +85,8 @@ mod tests {
         let empty = BinaryTree::new_empty();
         let left = BinaryTree::new_leaf(0);
         let right_right = BinaryTree::new_leaf(3);
-        let right = BinaryTree::new(2, empty, right_right);
-        let root = BinaryTree::new(1, left, right);
+        let right = BinaryTree::new(2, &empty, &right_right);
+        let root = BinaryTree::new(1, &left, &right);
 
         assert_eq!(Some(&1), root.data());
         assert_eq!(Some(&0), root.left_data());
