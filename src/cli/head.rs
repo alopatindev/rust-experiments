@@ -60,7 +60,7 @@ pub fn head(input: &mut Read, output: &mut Write, limit: usize) {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{BufReader, BufWriter, Read, Write};
+    use std::io::{BufReader, BufWriter, Write};
     use super::*;
 
     #[test]
