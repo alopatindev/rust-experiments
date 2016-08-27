@@ -10,6 +10,9 @@ extern crate test;
 #[macro_use]
 extern crate quickcheck;
 
+#[macro_use]
+extern crate maplit;
+
 pub mod algorithms;
 pub mod cli;
 pub mod encoding;
