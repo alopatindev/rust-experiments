@@ -13,6 +13,7 @@ clippy = {version="0.0.85", optional = true}
 getopts = "0.2"
 hyper = "0.9.10"
 libc = "0.2.14"
+maplit = "0.1.3"
 nalgebra = "0.8.2"
 notify = "2.6.2"
 quickcheck = "0.3"
