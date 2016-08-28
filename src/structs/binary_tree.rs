@@ -74,6 +74,13 @@ impl<T: Clone + PartialEq> BinaryTree<T> {
             .map_or(BinaryTree::new_empty(),
                     |rc_node| BinaryTree::from_node(&rc_node.as_ref().right))
     }
+
+    pub fn is_leaf(&self) -> bool {
+        match self.root {
+            Some(ref r) => r.left.is_none() && r.right.is_none(),
+            None => true,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -93,5 +100,11 @@ mod tests {
         assert_eq!(Some(&2), root.right_data());
         assert_eq!(None, root.right().left_data());
         assert_eq!(Some(&3), root.right().right_data());
+
+        assert!(!root.is_leaf());
+        assert!(!right.is_leaf());
+        assert!(right_right.is_leaf());
+        assert!(left.is_leaf());
+        assert!(empty.is_leaf());
     }
 }

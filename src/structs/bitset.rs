@@ -1,3 +1,5 @@
+#![allow(zero_prefixed_literal)]
+
 extern crate sys_info;
 use std::{fmt, mem};
 
