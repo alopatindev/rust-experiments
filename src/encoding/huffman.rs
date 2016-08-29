@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::io::{BufReader, Read, Result, Seek, SeekFrom, Write};
 use structs::binary_tree::BinaryTree;
+use structs::bitset::BitSet;
 
 #[derive(Clone, PartialEq, Debug)]
 struct NodeData {
@@ -10,7 +11,10 @@ struct NodeData {
 
 type Tree = BinaryTree<NodeData>;
 
-type Code = Vec<bool>;
+struct Code {
+    length: u8,
+    data: u8,
+}
 
 const BUFFER_SIZE: usize = 4096;
 
@@ -18,23 +22,30 @@ pub fn compress<T>(input: &mut BufReader<T>, output: &mut Write) -> Result<usize
     where T: Read
 {
     let tree = build_tree(input);
-    let chars_to_codes = build_dict(&tree);
-    // input.seek(SeekFrom::Start(0));
-    // let compressed = build_compressed(input, &chars_to_codes);
-    // let compressed = input.toList.flatMap { ch => charsToCodes(ch) }
-    // val codesToChars = charsToCodes.map { case (ch, code) => code -> ch }.toMap
+    let chars_to_codes = build_dictionary(&tree);
+    // write_dictionary(&mut output, &chars_to_codes);
+    // write_compressed(&mut input, &mut output, &chars_to_codes);
     unimplemented!();
 }
 
 pub fn decompress(input: &mut Read, output: &mut Write) -> Result<usize> {
+    // let codes_to_chars = read_dictionary(&mut input);
+    // read_compressed(&mut input, &mut output);
     unimplemented!();
 }
 
-fn build_compressed<T>(input: &mut BufReader<T>,
+fn write_dictionary<T>(output: &mut Write, chars_to_codes: &HashMap<u8, Code>) {
+    // let max_index = (chars_to_codes.size() - 1) as u8;
+    unimplemented!();
+}
+
+fn write_compressed<T>(input: &mut BufReader<T>,
                        output: &mut Write,
                        chars_to_codes: &HashMap<u8, Code>)
     where T: Read
 {
+    // let compressed = input.toList.flatMap { ch => charsToCodes(ch)
+    // input.seek(SeekFrom::Start(0));
     let mut buffer = [0; BUFFER_SIZE];
     loop {
         let bytes_read = input.read(&mut buffer).unwrap();
@@ -136,26 +147,39 @@ fn build_tree<T>(chars: &mut BufReader<T>) -> Tree
         }
     }
 
-    Tree::from_tree(&level[0])
+    level[0].clone()
 }
 
-fn compute_code(ch: u8, tree: &Tree, code: &mut Code) {
-    if tree.left_data().is_some() && tree.left_data().unwrap().chars.contains(&ch) {
-        code.push(false);
-        compute_code(ch, &tree.left(), code)
-    } else if tree.right_data().is_some() && tree.right_data().unwrap().chars.contains(&ch) {
-        code.push(true);
-        compute_code(ch, &tree.right(), code)
-    } else {
-        assert!(tree.is_leaf());
+fn compute_code(ch: u8, tree: &Tree) -> Code {
+    let mut tree = tree.clone();
+
+    let mut code = BitSet::new();
+    let mut length = 0;
+
+    loop {
+        if tree.left_data().is_some() && tree.left_data().unwrap().chars.contains(&ch) {
+            tree = tree.left();
+        } else if tree.right_data().is_some() && tree.right_data().unwrap().chars.contains(&ch) {
+            code.insert(length);
+            tree = tree.right();
+        } else {
+            break;
+        }
+        length += 1;
+    }
+
+    assert!(tree.is_leaf());
+
+    Code {
+        length: length as u8,
+        data: code.as_slice()[0] as u8,
     }
 }
 
-fn build_dict(tree: &Tree) -> HashMap<u8, Code> {
+fn build_dictionary(tree: &Tree) -> HashMap<u8, Code> {
     let mut result = HashMap::new();
     for &ch in &tree.data().unwrap().chars {
-        let mut code = vec![];
-        compute_code(ch, tree, &mut code);
+        let code = compute_code(ch, tree);
         result.insert(ch, code);
     }
     result

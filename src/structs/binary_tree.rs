@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+#[derive(Clone)]
 pub struct BinaryTree<T: Clone + PartialEq> {
     root: Link<T>,
 }
@@ -35,10 +36,6 @@ impl<T: Clone + PartialEq> BinaryTree<T> {
 
     pub fn from_node(node: &Link<T>) -> BinaryTree<T> {
         BinaryTree { root: node.clone() }
-    }
-
-    pub fn from_tree(tree: &BinaryTree<T>) -> BinaryTree<T> {
-        BinaryTree { root: tree.root.clone() }
     }
 
     pub fn new_empty() -> Self {
