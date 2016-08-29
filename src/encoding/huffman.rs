@@ -1,9 +1,16 @@
 use std::collections::{HashMap, HashSet};
-use std::io::{BufReader, Read, Result, Write};
+use std::io::{BufReader, Read, Result, Seek, SeekFrom, Write};
 use structs::binary_tree::BinaryTree;
 
-type NodeData = (HashSet<u8>, usize);
+#[derive(Clone, PartialEq, Debug)]
+struct NodeData {
+    chars: HashSet<u8>,
+    weight: usize,
+}
+
 type Tree = BinaryTree<NodeData>;
+
+type Code = Vec<bool>;
 
 const BUFFER_SIZE: usize = 4096;
 
@@ -11,10 +18,34 @@ pub fn compress<T>(input: &mut BufReader<T>, output: &mut Write) -> Result<usize
     where T: Read
 {
     let tree = build_tree(input);
+    let chars_to_codes = build_dict(&tree);
+    // input.seek(SeekFrom::Start(0));
+    // let compressed = build_compressed(input, &chars_to_codes);
+    // let compressed = input.toList.flatMap { ch => charsToCodes(ch) }
+    // val codesToChars = charsToCodes.map { case (ch, code) => code -> ch }.toMap
     unimplemented!();
 }
 
 pub fn decompress(input: &mut Read, output: &mut Write) -> Result<usize> {
+    unimplemented!();
+}
+
+fn build_compressed<T>(input: &mut BufReader<T>,
+                       output: &mut Write,
+                       chars_to_codes: &HashMap<u8, Code>)
+    where T: Read
+{
+    let mut buffer = [0; BUFFER_SIZE];
+    loop {
+        let bytes_read = input.read(&mut buffer).unwrap();
+        if bytes_read == 0 {
+            break;
+        }
+
+        for ch in &buffer[0..bytes_read] {
+            let code = chars_to_codes.get(ch).unwrap();
+        }
+    }
     unimplemented!();
 }
 
@@ -39,7 +70,10 @@ fn compute_leaves<T>(input: &mut BufReader<T>) -> Vec<Tree>
     let mut result = Vec::with_capacity(char_to_weight.len());
     for (&ch, &weight) in &char_to_weight {
         let chars = hashset!{ch};
-        let data: NodeData = (chars, weight);
+        let data: NodeData = NodeData {
+            chars: chars,
+            weight: weight,
+        };
         result.push(BinaryTree::new_leaf(data));
     }
 
@@ -52,7 +86,7 @@ fn build_next_level(level: &[Tree], next_level: &mut Vec<Tree>) {
     while i < n {
         let last_node_in_level = i == n - 1;
         let new_parent_has_same_weight = match next_level.last() {
-            Some(tree) => tree.data().unwrap().1 <= level[i].data().unwrap().1,
+            Some(tree) => tree.data().unwrap().weight <= level[i].data().unwrap().weight,
             None => false,
         };
         if last_node_in_level || new_parent_has_same_weight {
@@ -69,13 +103,16 @@ fn build_next_level(level: &[Tree], next_level: &mut Vec<Tree>) {
 }
 
 fn new_parent(left: &Tree, right: &Tree) -> Tree {
-    let left_chars = &left.data().unwrap().0;
-    let right_chars = &right.data().unwrap().0;
+    let left_chars = &left.data().unwrap().chars;
+    let right_chars = &right.data().unwrap().chars;
 
     let chars = left_chars.union(right_chars).cloned().collect::<HashSet<u8>>();
-    let weight = left.data().unwrap().1 + right.data().unwrap().1;
+    let weight = left.data().unwrap().weight + right.data().unwrap().weight;
 
-    let data = (chars, weight);
+    let data = NodeData {
+        chars: chars,
+        weight: weight,
+    };
     Tree::new(data, left, right)
 }
 
@@ -83,7 +120,7 @@ fn build_tree<T>(chars: &mut BufReader<T>) -> Tree
     where T: Read
 {
     let mut leaves = compute_leaves(chars);
-    leaves.sort_by_key(|tree| tree.data().unwrap().1);
+    leaves.sort_by_key(|tree| tree.data().unwrap().weight);
 
     let mut level = leaves;
     let mut next_level = Vec::with_capacity(level.len() / 2 + 1);
@@ -100,6 +137,28 @@ fn build_tree<T>(chars: &mut BufReader<T>) -> Tree
     }
 
     Tree::from_tree(&level[0])
+}
+
+fn compute_code(ch: u8, tree: &Tree, code: &mut Code) {
+    if tree.left_data().is_some() && tree.left_data().unwrap().chars.contains(&ch) {
+        code.push(false);
+        compute_code(ch, &tree.left(), code)
+    } else if tree.right_data().is_some() && tree.right_data().unwrap().chars.contains(&ch) {
+        code.push(true);
+        compute_code(ch, &tree.right(), code)
+    } else {
+        assert!(tree.is_leaf());
+    }
+}
+
+fn build_dict(tree: &Tree) -> HashMap<u8, Code> {
+    let mut result = HashMap::new();
+    for &ch in &tree.data().unwrap().chars {
+        let mut code = vec![];
+        compute_code(ch, tree, &mut code);
+        result.insert(ch, code);
+    }
+    result
 }
 
 #[cfg(test)]
@@ -145,14 +204,19 @@ mod tests {
         let expected = vec![(' ', 1), ('e', 1), ('i', 5), ('m', 1), ('p', 2), ('r', 2), ('s', 4),
                             ('v', 1)];
         let expected = expected.into_iter()
-            .map(|(ch, weight)| (hashset!{ch as u8}, weight))
+            .map(|(ch, weight)| {
+                super::NodeData {
+                    chars: hashset!{ch as u8},
+                    weight: weight,
+                }
+            })
             .collect::<Vec<super::NodeData>>();
 
         let mut result: Vec<super::NodeData> = super::compute_leaves(&mut input)
             .iter()
             .map(|tree| tree.data().unwrap().clone())
             .collect::<Vec<super::NodeData>>();
-        result.sort_by_key(|node| *node.0.iter().next().unwrap());
+        result.sort_by_key(|node| *node.chars.iter().next().unwrap());
 
         assert_eq!(expected, result);
     }
@@ -166,7 +230,7 @@ mod tests {
         let tree = super::build_tree(&mut input);
 
         let assert_weight = |expect: usize, tree: &super::Tree| {
-            assert_eq!(expect, tree.data().unwrap().1);
+            assert_eq!(expect, tree.data().unwrap().weight);
         };
 
         let mut all_chars = HashSet::with_capacity(input_slice.len());
@@ -174,7 +238,7 @@ mod tests {
             all_chars.insert(i);
         }
 
-        assert_eq!(all_chars, tree.data().unwrap().0);
+        assert_eq!(all_chars, tree.data().unwrap().chars);
         assert_weight(17, &tree);
         assert_weight(6, &tree.left());
         assert_weight(2, &tree.left().left());
