@@ -7,7 +7,7 @@
 
 Licensed under the terms of MIT (read LICENSE.txt for details).
 
-You can see me coding some of this stuff [at livecoding.tv](https://www.livecoding.tv/alopatindev)
+You can see me coding some of this stuff [at livecoding.tv](https://www.livecoding.tv/alopatindev/videos)
 
 Contents
 --------
