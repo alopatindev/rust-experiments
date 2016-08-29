@@ -37,29 +37,29 @@ mod tests {
     fn simple() {
         let a: Vec<i32> = vec![10, 22, 55, 66, 66, 333, 1234, 6689];
 
-        assert_eq!(binary_search(&a, &55), Some(2));
-        assert_eq!(binary_search(&a, &333), Some(5));
+        assert_eq!(Some(2), binary_search(&a, &55));
+        assert_eq!(Some(5), binary_search(&a, &333));
 
         {
             let result = binary_search(&a, &66);
-            assert!(result == Some(3) || result == Some(4));
+            assert!(Some(3) == result || Some(4) == result);
         }
 
-        assert_eq!(binary_search(&a, &10), Some(0));
-        assert_eq!(binary_search(&a, &22), Some(1));
-        assert_eq!(binary_search(&a, &6689), Some(7));
-        assert_eq!(binary_search(&a, &1234), Some(6));
+        assert_eq!(Some(0), binary_search(&a, &10));
+        assert_eq!(Some(1), binary_search(&a, &22));
+        assert_eq!(Some(7), binary_search(&a, &6689));
+        assert_eq!(Some(6), binary_search(&a, &1234));
 
-        assert_eq!(binary_search(&a, &8), None);
-        assert_eq!(binary_search(&a, &11), None);
-        assert_eq!(binary_search(&a, &1300), None);
-        assert_eq!(binary_search(&a, &10000), None);
+        assert_eq!(None, binary_search(&a, &8));
+        assert_eq!(None, binary_search(&a, &11));
+        assert_eq!(None, binary_search(&a, &1300));
+        assert_eq!(None, binary_search(&a, &10000));
     }
 
     #[test]
     fn empty() {
         let a: Vec<i32> = vec![];
-        assert_eq!(binary_search(&a, &1), None);
+        assert_eq!(None, binary_search(&a, &1));
     }
 
     /// works on `x86_64` Linux after `echo -n 1 > /proc/sys/vm/overcommit_memory`
@@ -101,17 +101,17 @@ mod tests {
     //         ptr::write(p_to_last as *mut T, last_item);
     //
     //         let a: &[T; N] = mem::transmute(p);
-    //         assert_eq!(a.len(), N);
+    //         assert_eq!(N, a.len());
     //
-    //         assert_eq!(binary_search(a, &last_item), Some(last_array_index));
-    //         assert_eq!(binary_search(a, &(-10)), None);
-    //         assert_eq!(binary_search(a, &12), None);
-    //         assert_eq!(binary_search(a, &80), None);
-    //         assert_eq!(binary_search(a, &90), None);
-    //         assert_eq!(binary_search(a, &100), None);
-    //         assert_eq!(binary_search(a, &110), None);
-    //         assert_eq!(binary_search(a, &126), None);
-    //         assert_eq!(binary_search(a, &127), None);
+    //         assert_eq!(Some(last_array_index), binary_search(a, &last_item));
+    //         assert_eq!(None, binary_search(a, &(-10)));
+    //         assert_eq!(None, binary_search(a, &12));
+    //         assert_eq!(None, binary_search(a, &80));
+    //         assert_eq!(None, binary_search(a, &90));
+    //         assert_eq!(None, binary_search(a, &100));
+    //         assert_eq!(None, binary_search(a, &110));
+    //         assert_eq!(None, binary_search(a, &126));
+    //         assert_eq!(None, binary_search(a, &127));
     //
     //         libc::free(p);
     //     }
