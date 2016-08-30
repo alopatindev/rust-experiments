@@ -1,6 +1,7 @@
 [![Build Status](https://api.travis-ci.org/alopatindev/rust-experiments.svg?branch=master)](https://travis-ci.org/alopatindev/rust-experiments)
 [![Coverage Status](https://coveralls.io/repos/github/alopatindev/rust-experiments/badge.svg?branch=master)](https://coveralls.io/github/alopatindev/rust-experiments?branch=master)
 [![codecov.io](http://codecov.io/github/alopatindev/rust-experiments/coverage.svg?branch=master)](https://codecov.io/github/alopatindev/rust-experiments?branch=master)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.txt)
 
 "Hello Worlds" in Rust
 ======================
