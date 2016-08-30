@@ -1,5 +1,3 @@
-#![allow(zero_prefixed_literal)]
-
 extern crate sys_info;
 use std::{fmt, mem};
 
@@ -418,44 +416,44 @@ mod tests {
         assert_eq!("{2,5,8}", format!("{}", b));
     }
 
-    quickcheck! {
-        fn random_contains(xs: Vec<usize>) -> bool {
-            let mut b: BitSet = BitSet::new();
+    #[quickcheck]
+    fn random_contains(xs: Vec<usize>) -> bool {
+        let mut b: BitSet = BitSet::new();
 
-            for i in &xs {
-                b.insert(*i);
-                if !b.contains(*i) {
-                    return false
-                }
+        for i in &xs {
+            b.insert(*i);
+            if !b.contains(*i) {
+                return false;
             }
-
-            true
         }
 
-        fn random_items(xs: Vec<usize>) -> bool {
-            let mut b: BitSet = BitSet::new();
-            let mut h: HashSet<usize> = HashSet::new();
-            for i in &xs {
-                b.insert(*i);
-                h.insert(*i);
-                if h.len() != b.len() {
-                    return false
-                }
-            }
+        true
+    }
 
-            for i in &h {
-                if !b.contains(*i) {
-                    return false
-                }
+    #[quickcheck]
+    fn random_items(xs: Vec<usize>) -> bool {
+        let mut b: BitSet = BitSet::new();
+        let mut h: HashSet<usize> = HashSet::new();
+        for i in &xs {
+            b.insert(*i);
+            h.insert(*i);
+            if h.len() != b.len() {
+                return false;
             }
-
-            for i in b {
-                if !h.contains(&i) {
-                    return false
-                }
-            }
-
-            return true
         }
+
+        for i in &h {
+            if !b.contains(*i) {
+                return false;
+            }
+        }
+
+        for i in b {
+            if !h.contains(&i) {
+                return false;
+            }
+        }
+
+        true
     }
 }

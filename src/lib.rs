@@ -1,17 +1,20 @@
 #![allow(unstable_features)]
+#![allow(zero_prefixed_literal)] // FIXME
 #![feature(io)]
 #![feature(plugin)]
 #![plugin(clippy)]
+#![plugin(quickcheck_macros)]
 
 #![feature(test)]
 extern crate test;
 
 #[cfg(test)]
-#[macro_use]
 extern crate quickcheck;
 
 #[macro_use]
 extern crate maplit;
+
+extern crate bitstream;
 
 pub mod algorithms;
 pub mod cli;

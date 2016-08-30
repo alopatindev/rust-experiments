@@ -1,3 +1,4 @@
+use bitstream::reader::{BitReader, BigEndian};
 use std::collections::{HashMap, HashSet};
 use std::io::{BufReader, Read, Result, Seek, SeekFrom, Write};
 use structs::binary_tree::BinaryTree;
@@ -28,7 +29,9 @@ pub fn compress<T>(input: &mut BufReader<T>, output: &mut Write) -> Result<usize
     unimplemented!();
 }
 
-pub fn decompress(input: &mut Read, output: &mut Write) -> Result<usize> {
+pub fn decompress<T>(input: &mut BitReader<T, BigEndian>, output: &mut Write) -> Result<usize>
+    where T: Read
+{
     // let codes_to_chars = read_dictionary(&mut input);
     // read_compressed(&mut input, &mut output);
     unimplemented!();
@@ -187,6 +190,7 @@ fn build_dictionary(tree: &Tree) -> HashMap<u8, Code> {
 
 #[cfg(test)]
 mod tests {
+    use bitstream::reader::{BitReader, BigEndian};
     use std::io::{BufReader, BufWriter, Write};
     use structs::binary_tree::BinaryTree;
     use super::*;
@@ -210,7 +214,7 @@ mod tests {
         let decompressed: Vec<u8> = vec![];
         let mut decompressed = BufWriter::new(decompressed);
 
-        let mut compressed = BufReader::new(&output.get_ref()[..]);
+        let mut compressed = BitReader::new(&output.get_ref()[..]);
         let decompressed_length = decompress(&mut compressed, decompressed.by_ref()).unwrap();
 
         assert_eq!(input_slice, &decompressed.get_ref()[..]);

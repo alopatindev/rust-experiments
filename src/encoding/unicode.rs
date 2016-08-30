@@ -1,5 +1,3 @@
-#![allow(zero_prefixed_literal)]
-
 pub fn to_utf8(utf16: &[u16]) -> Vec<u8> {
     let mut utf8 = vec![];
 
