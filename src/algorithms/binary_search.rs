@@ -1,4 +1,6 @@
-pub fn binary_search<T: PartialOrd>(a: &[T], pattern: &T) -> Option<usize> {
+pub fn binary_search<T>(a: &[T], pattern: &T) -> Option<usize>
+    where T: PartialOrd
+{
     let n = a.len();
     if n == 0 {
         return None;

@@ -1,4 +1,6 @@
-pub fn base64_encode<S: Into<String>>(input: S) -> String {
+pub fn base64_encode<S>(input: S) -> String
+    where S: Into<String>
+{
     let input = input.into();
     let data = string_to_vec(input.as_str());
     let mut result: Vec<u8> = vec![];
@@ -33,7 +35,9 @@ pub fn base64_encode<S: Into<String>>(input: S) -> String {
     String::from_utf8(result).unwrap()
 }
 
-pub fn base64_decode<S: Into<String>>(input: S) -> String {
+pub fn base64_decode<S>(input: S) -> String
+    where S: Into<String>
+{
     let input = input.into();
     let data = string_to_vec(input.as_str());
     let mut result: Vec<u8> = vec![];

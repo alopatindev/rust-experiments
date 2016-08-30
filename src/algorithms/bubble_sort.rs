@@ -1,6 +1,8 @@
 use std::fmt::{Debug, Display};
 
-pub fn bubble_sort<T: PartialOrd + Display + Debug>(a: &mut Vec<T>) -> &mut Vec<T> {
+pub fn bubble_sort<T>(a: &mut Vec<T>) -> &mut Vec<T>
+    where T: PartialOrd + Display + Debug
+{
     let mut n = a.len();
     if n == 0 {
         return a;

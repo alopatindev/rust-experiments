@@ -2,8 +2,12 @@ use std::ops::Range;
 
 pub type Bounds = Range<usize>;
 
-pub fn merge_sort_recursive<T: PartialOrd + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
-    fn helper<T: PartialOrd + Copy>(a: &mut Vec<T>, bounds: &Bounds) {
+pub fn merge_sort_recursive<T>(a: &mut Vec<T>) -> &mut Vec<T>
+    where T: PartialOrd + Copy
+{
+    fn helper<T>(a: &mut Vec<T>, bounds: &Bounds)
+        where T: PartialOrd + Copy
+    {
         assert!(bounds.start < bounds.end);
 
         if bounds.len() > 1 {
@@ -22,7 +26,9 @@ pub fn merge_sort_recursive<T: PartialOrd + Copy>(a: &mut Vec<T>) -> &mut Vec<T>
     a
 }
 
-pub fn merge_sort_iterative<T: PartialOrd + Copy>(a: &mut Vec<T>) -> &mut Vec<T> {
+pub fn merge_sort_iterative<T>(a: &mut Vec<T>) -> &mut Vec<T>
+    where T: PartialOrd + Copy
+{
     let n = a.len();
     if n <= 1 {
         return a;
@@ -50,7 +56,9 @@ pub fn merge_sort_iterative<T: PartialOrd + Copy>(a: &mut Vec<T>) -> &mut Vec<T>
     a
 }
 
-pub fn merge<T: PartialOrd + Copy>(a: &[T], bounds: &Bounds) -> Vec<T> {
+pub fn merge<T>(a: &[T], bounds: &Bounds) -> Vec<T>
+    where T: PartialOrd + Copy
+{
     assert!(bounds.start < bounds.end);
 
     let accumulate_result = |index: &mut usize, result: &mut Vec<T>| {
@@ -84,7 +92,9 @@ pub fn merge<T: PartialOrd + Copy>(a: &[T], bounds: &Bounds) -> Vec<T> {
     result
 }
 
-fn merge_and_update<T: PartialOrd + Copy>(a: &mut Vec<T>, bounds: &Bounds) {
+fn merge_and_update<T>(a: &mut Vec<T>, bounds: &Bounds)
+    where T: PartialOrd + Copy
+{
     let merged = merge(a, bounds);
     for (i, mi) in merged.iter().enumerate() {
         a[bounds.start + i] = *mi;
