@@ -1,6 +1,6 @@
 use encoding::bitreader::BitReader;
 use encoding::bitwriter::BitWriter;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use std::io::{Read, Result, Seek, Write};
 use structs::binary_tree::BinaryTree;
 
@@ -17,6 +17,9 @@ pub struct Code {
     data: u8,
 }
 
+pub type CodesToChars = HashMap<Code, u8>;
+pub type CharsToCodes = HashMap<u8, Code>;
+
 pub fn compress<R, W>(input: &mut BitReader<R>, output: &mut BitWriter<W>) -> Result<usize>
     where R: Read + Seek,
           W: Write
@@ -30,9 +33,8 @@ pub fn compress<R, W>(input: &mut BitReader<R>, output: &mut BitWriter<W>) -> Re
 pub fn decompress<R>(input: &mut BitReader<R>, output: &mut Write) -> Result<usize>
     where R: Read
 {
-    // let codes_to_chars = read_dictionary(&mut input);
-    // read_compressed(&mut input, &mut output);
-    unimplemented!();
+    let codes_to_chars = try!(decompression::read_dictionary(input));
+    decompression::read_compressed(input, output, &codes_to_chars)
 }
 
 mod compression {
@@ -45,16 +47,16 @@ mod compression {
     use super::*;
 
     pub fn write_dictionary<W>(output: &mut BitWriter<W>,
-                               chars_to_codes: &HashMap<u8, Code>)
+                               chars_to_codes: &CharsToCodes)
                                -> Result<()>
         where W: Write
     {
         let max_index = (chars_to_codes.len() - 1) as u8;
         try!(output.write_byte(max_index));
         for (&ch, code) in chars_to_codes {
-            try!(output.write_byte(ch));
             try!(output.write_byte(code.length));
             try!(output.write_byte(code.data));
+            try!(output.write_byte(ch));
         }
 
         Ok(())
@@ -62,7 +64,7 @@ mod compression {
 
     pub fn write_compressed<R, W>(input: &mut BitReader<R>,
                                   output: &mut BitWriter<W>,
-                                  chars_to_codes: &HashMap<u8, Code>)
+                                  chars_to_codes: &CharsToCodes)
                                   -> Result<usize>
         where R: Read + Seek,
               W: Write
@@ -192,7 +194,7 @@ mod compression {
         }
     }
 
-    pub fn build_dictionary(tree: &Tree) -> HashMap<u8, Code> {
+    pub fn build_dictionary(tree: &Tree) -> CharsToCodes {
         let mut result = HashMap::new();
         for &ch in &tree.data().unwrap().chars {
             let code = compute_code(ch, tree);
@@ -202,7 +204,26 @@ mod compression {
     }
 }
 
-mod decompression {}
+mod decompression {
+    use encoding::bitreader::BitReader;
+    use std::io::{Read, Result, Write};
+    use super::*;
+
+    pub fn read_dictionary<R>(input: &mut BitReader<R>) -> Result<CodesToChars>
+        where R: Read
+    {
+        unimplemented!();
+    }
+
+    pub fn read_compressed<R>(input: &mut BitReader<R>,
+                              output: &mut Write,
+                              codes_to_chars: &CodesToChars)
+                              -> Result<usize>
+        where R: Read
+    {
+        unimplemented!();
+    }
+}
 
 #[cfg(test)]
 mod tests {
