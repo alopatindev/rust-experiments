@@ -23,6 +23,7 @@ Contents
 * bin/wc.rs
 * bin/wget.rs
 * encoding/base64.rs
+* encoding/bitreader.rs
 * encoding/bitwriter.rs
 * encoding/huffman.rs
 * encoding/unicode.rs
