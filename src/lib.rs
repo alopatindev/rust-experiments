@@ -14,8 +14,6 @@ extern crate quickcheck;
 #[macro_use]
 extern crate maplit;
 
-extern crate bitstream;
-
 pub mod algorithms;
 pub mod cli;
 pub mod encoding;

@@ -9,7 +9,6 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-bitstream = "0.1.1"
 clippy = {version="0.0.86", optional = true}
 getopts = "0.2"
 hyper = "0.9.10"
