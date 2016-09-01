@@ -1,4 +1,5 @@
-use bitstream::reader::{BitReader, BigEndian};
+use encoding::bitreader::BitReader;
+use encoding::bitwriter::BitWriter;
 use std::collections::{HashMap, HashSet};
 use std::io::{Read, Result, Seek, SeekFrom, Write};
 use structs::binary_tree::BinaryTree;
@@ -17,68 +18,69 @@ struct Code {
     data: u8,
 }
 
-const BUFFER_SIZE: usize = 4096;
-
-pub fn compress<Input>(input: &mut Input, output: &mut Write) -> Result<usize>
-    where Input: Read + Seek
+pub fn compress<R, W>(input: &mut BitReader<R>, output: &mut BitWriter<W>) -> Result<usize>
+    where R: Read + Seek,
+          W: Write
 {
     let tree = build_tree(input);
     let chars_to_codes = build_dictionary(&tree);
-    write_dictionary(output, &chars_to_codes);
+    try!(write_dictionary(output, &chars_to_codes));
     write_compressed(input, output, &chars_to_codes)
 }
 
-pub fn decompress<T>(input: &mut BitReader<T, BigEndian>, output: &mut Write) -> Result<usize>
-    where T: Read
+pub fn decompress<R>(input: &mut BitReader<R>, output: &mut Write) -> Result<usize>
+    where R: Read
 {
     // let codes_to_chars = read_dictionary(&mut input);
     // read_compressed(&mut input, &mut output);
     unimplemented!();
 }
 
-fn write_dictionary(output: &mut Write, chars_to_codes: &HashMap<u8, Code>) {
-    // let max_index = (chars_to_codes.size() - 1) as u8;
-    unimplemented!();
+fn write_dictionary<W>(output: &mut BitWriter<W>, chars_to_codes: &HashMap<u8, Code>) -> Result<()>
+    where W: Write
+{
+    let max_index = (chars_to_codes.len() - 1) as u8;
+    try!(output.write_byte(max_index));
+    for (&ch, code) in chars_to_codes {
+        try!(output.write_byte(ch));
+        try!(output.write_byte(code.length));
+        try!(output.write_byte(code.data));
+    }
+
+    Ok(())
 }
 
-fn write_compressed<Input>(input: &mut Input,
-                           output: &mut Write,
-                           chars_to_codes: &HashMap<u8, Code>)
-                           -> Result<usize>
-    where Input: Read + Seek
+fn write_compressed<R, W>(input: &mut BitReader<R>,
+                          output: &mut BitWriter<W>,
+                          chars_to_codes: &HashMap<u8, Code>)
+                          -> Result<usize>
+    where R: Read + Seek,
+          W: Write
 {
-    // let compressed = input.toList.flatMap { ch => charsToCodes(ch)
-    input.seek(SeekFrom::Start(0)).unwrap();
-    let mut buffer = [0; BUFFER_SIZE];
-    loop {
-        let bytes_read = input.read(&mut buffer).unwrap();
-        if bytes_read == 0 {
-            break;
-        }
+    try!(input.get_mut().seek(SeekFrom::Start(0)));
 
-        for ch in &buffer[0..bytes_read] {
-            let code = chars_to_codes.get(ch).unwrap();
+    let mut bits_written = 0;
+    while let Ok(buffer) = input.read_byte() {
+        let code = chars_to_codes.get(&buffer).unwrap();
+        for i in 0..code.length {
+            let bit = 1 << i;
+            let data = (code.data & bit) > 0;
+            try!(output.write_bit(data));
+            bits_written += 1;
         }
     }
-    unimplemented!();
+
+    Ok(bits_written)
 }
 
-fn compute_leaves<Input>(input: &mut Input) -> Vec<Tree>
-    where Input: Read + Seek
+fn compute_leaves<R>(input: &mut BitReader<R>) -> Vec<Tree>
+    where R: Read + Seek
 {
     let mut char_to_weight: HashMap<u8, usize> = HashMap::new();
-    let mut buffer = [0; BUFFER_SIZE];
 
-    loop {
-        let bytes_read = input.read(&mut buffer).unwrap();
-        if bytes_read == 0 {
-            break;
-        }
-
-        for i in &buffer[0..bytes_read] {
-            char_to_weight.entry(*i).or_insert(0);
-            char_to_weight.get_mut(i).map(|mut w| *w += 1);
-        }
+    while let Ok(buffer) = input.read_byte() {
+        char_to_weight.entry(buffer).or_insert(0);
+        char_to_weight.get_mut(&buffer).map(|mut w| *w += 1);
     }
 
     let mut result = Vec::with_capacity(char_to_weight.len());
@@ -130,8 +132,8 @@ fn new_parent(left: &Tree, right: &Tree) -> Tree {
     Tree::new(data, left, right)
 }
 
-fn build_tree<Input>(chars: &mut Input) -> Tree
-    where Input: Read + Seek
+fn build_tree<R>(chars: &mut BitReader<R>) -> Tree
+    where R: Read + Seek
 {
     let mut leaves = compute_leaves(chars);
     leaves.sort_by_key(|tree| tree.data().unwrap().weight);
@@ -190,9 +192,9 @@ fn build_dictionary(tree: &Tree) -> HashMap<u8, Code> {
 
 #[cfg(test)]
 mod tests {
-    use bitstream::reader::BitReader;
-    use std::io::{Cursor, BufReader, BufWriter, Write};
-    use structs::binary_tree::BinaryTree;
+    use encoding::bitreader::BitReader;
+    use encoding::bitwriter::BitWriter;
+    use std::io::{Cursor, BufWriter, Write};
     use super::*;
 
     #[test]
@@ -204,30 +206,31 @@ mod tests {
 
     fn simple_assert(text: &str) {
         let input_slice = text.as_bytes();
-        let mut input = Cursor::new(input_slice);
+        let mut input = BitReader::new(Cursor::new(input_slice));
 
-        let output_vec: Vec<u8> = vec![];
-        let mut output = BufWriter::new(output_vec);
+        let output: Vec<u8> = vec![];
+        let mut output = BitWriter::new(Cursor::new(output));
 
-        let compressed_length = compress(&mut input, output.by_ref()).unwrap();
+        let compressed_length = compress(&mut input, &mut output).unwrap();
+        // assert_eq!(46, compressed_length);
 
         let decompressed: Vec<u8> = vec![];
         let mut decompressed = BufWriter::new(decompressed);
 
-        let mut compressed = BitReader::new(&output.get_ref()[..]);
+        let mut compressed: BitReader<&[u8]> = BitReader::new(&output.get_ref().get_ref()[..]);
         let decompressed_length = decompress(&mut compressed, decompressed.by_ref()).unwrap();
 
-        assert_eq!(input_slice, &decompressed.get_ref()[..]);
         assert!(compressed_length < decompressed_length);
         assert!(decompressed_length == input_slice.len() * 8);
-        assert!(compressed_length == 46);
+        assert_eq!(input_slice, &decompressed.get_ref()[..]);
     }
 
     #[test]
     fn compute_leaves() {
         let text = "mississippi river";
         let input_slice = text.as_bytes();
-        let mut input = Cursor::new(input_slice);
+        let input = Cursor::new(input_slice);
+        let mut input = BitReader::new(input);
 
         let expected = vec![(' ', 1), ('e', 1), ('i', 5), ('m', 1), ('p', 2), ('r', 2), ('s', 4),
                             ('v', 1)];
@@ -254,7 +257,8 @@ mod tests {
         use std::collections::HashSet;
         let text = "mississippi river";
         let input_slice = text.as_bytes();
-        let mut input = Cursor::new(input_slice);
+        let input = Cursor::new(input_slice);
+        let mut input = BitReader::new(input);
         let tree = super::build_tree(&mut input);
 
         let assert_weight = |expect: usize, tree: &super::Tree| {
