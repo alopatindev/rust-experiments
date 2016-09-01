@@ -1,19 +1,18 @@
 use encoding::bitreader::BitReader;
 use encoding::bitwriter::BitWriter;
-use std::collections::{HashMap, HashSet};
-use std::io::{Read, Result, Seek, SeekFrom, Write};
+use std::collections::HashSet;
+use std::io::{Read, Result, Seek, Write};
 use structs::binary_tree::BinaryTree;
-use structs::bitset::BitSet;
 
 #[derive(Clone, PartialEq, Debug)]
-struct NodeData {
+pub struct NodeData {
     chars: HashSet<u8>,
     weight: usize,
 }
 
-type Tree = BinaryTree<NodeData>;
+pub type Tree = BinaryTree<NodeData>;
 
-struct Code {
+pub struct Code {
     length: u8,
     data: u8,
 }
@@ -22,10 +21,10 @@ pub fn compress<R, W>(input: &mut BitReader<R>, output: &mut BitWriter<W>) -> Re
     where R: Read + Seek,
           W: Write
 {
-    let tree = build_tree(input);
-    let chars_to_codes = build_dictionary(&tree);
-    try!(write_dictionary(output, &chars_to_codes));
-    write_compressed(input, output, &chars_to_codes)
+    let tree = compression::build_tree(input);
+    let chars_to_codes = compression::build_dictionary(&tree);
+    try!(compression::write_dictionary(output, &chars_to_codes));
+    compression::write_compressed(input, output, &chars_to_codes)
 }
 
 pub fn decompress<R>(input: &mut BitReader<R>, output: &mut Write) -> Result<usize>
@@ -36,159 +35,174 @@ pub fn decompress<R>(input: &mut BitReader<R>, output: &mut Write) -> Result<usi
     unimplemented!();
 }
 
-fn write_dictionary<W>(output: &mut BitWriter<W>, chars_to_codes: &HashMap<u8, Code>) -> Result<()>
-    where W: Write
-{
-    let max_index = (chars_to_codes.len() - 1) as u8;
-    try!(output.write_byte(max_index));
-    for (&ch, code) in chars_to_codes {
-        try!(output.write_byte(ch));
-        try!(output.write_byte(code.length));
-        try!(output.write_byte(code.data));
+mod compression {
+    use encoding::bitreader::BitReader;
+    use encoding::bitwriter::BitWriter;
+    use std::collections::{HashMap, HashSet};
+    use std::io::{Read, Result, Seek, SeekFrom, Write};
+    use structs::binary_tree::BinaryTree;
+    use structs::bitset::BitSet;
+    use super::*;
+
+    pub fn write_dictionary<W>(output: &mut BitWriter<W>,
+                               chars_to_codes: &HashMap<u8, Code>)
+                               -> Result<()>
+        where W: Write
+    {
+        let max_index = (chars_to_codes.len() - 1) as u8;
+        try!(output.write_byte(max_index));
+        for (&ch, code) in chars_to_codes {
+            try!(output.write_byte(ch));
+            try!(output.write_byte(code.length));
+            try!(output.write_byte(code.data));
+        }
+
+        Ok(())
     }
 
-    Ok(())
-}
+    pub fn write_compressed<R, W>(input: &mut BitReader<R>,
+                                  output: &mut BitWriter<W>,
+                                  chars_to_codes: &HashMap<u8, Code>)
+                                  -> Result<usize>
+        where R: Read + Seek,
+              W: Write
+    {
+        try!(input.get_mut().seek(SeekFrom::Start(0)));
 
-fn write_compressed<R, W>(input: &mut BitReader<R>,
-                          output: &mut BitWriter<W>,
-                          chars_to_codes: &HashMap<u8, Code>)
-                          -> Result<usize>
-    where R: Read + Seek,
-          W: Write
-{
-    try!(input.get_mut().seek(SeekFrom::Start(0)));
+        let mut bits_written = 0;
+        while let Ok(buffer) = input.read_byte() {
+            let code = chars_to_codes.get(&buffer).unwrap();
+            for i in 0..code.length {
+                let bit = 1 << i;
+                let data = (code.data & bit) > 0;
+                try!(output.write_bit(data));
+                bits_written += 1;
+            }
+        }
 
-    let mut bits_written = 0;
-    while let Ok(buffer) = input.read_byte() {
-        let code = chars_to_codes.get(&buffer).unwrap();
-        for i in 0..code.length {
-            let bit = 1 << i;
-            let data = (code.data & bit) > 0;
-            try!(output.write_bit(data));
-            bits_written += 1;
+        Ok(bits_written)
+    }
+
+    pub fn compute_leaves<R>(input: &mut BitReader<R>) -> Vec<Tree>
+        where R: Read + Seek
+    {
+        let mut char_to_weight: HashMap<u8, usize> = HashMap::new();
+
+        while let Ok(buffer) = input.read_byte() {
+            char_to_weight.entry(buffer).or_insert(0);
+            char_to_weight.get_mut(&buffer).map(|mut w| *w += 1);
+        }
+
+        let mut result = Vec::with_capacity(char_to_weight.len());
+        for (&ch, &weight) in &char_to_weight {
+            let chars = hashset!{ch};
+            let data: NodeData = NodeData {
+                chars: chars,
+                weight: weight,
+            };
+            result.push(BinaryTree::new_leaf(data));
+        }
+
+        result
+    }
+
+    pub fn build_next_level(level: &[Tree], next_level: &mut Vec<Tree>) {
+        let n = level.len();
+        let mut i = 0;
+        while i < n {
+            let last_node_in_level = i == n - 1;
+            let new_parent_has_same_weight = match next_level.last() {
+                Some(tree) => tree.data().unwrap().weight <= level[i].data().unwrap().weight,
+                None => false,
+            };
+            if last_node_in_level || new_parent_has_same_weight {
+                let parent = new_parent(next_level.last().unwrap(), &level[i]);
+                next_level.pop();
+                next_level.push(parent);
+                i += 1;
+            } else {
+                let parent = new_parent(&level[i], &level[i + 1]);
+                next_level.push(parent);
+                i += 2;
+            }
         }
     }
 
-    Ok(bits_written)
-}
+    pub fn new_parent(left: &Tree, right: &Tree) -> Tree {
+        let left_chars = &left.data().unwrap().chars;
+        let right_chars = &right.data().unwrap().chars;
 
-fn compute_leaves<R>(input: &mut BitReader<R>) -> Vec<Tree>
-    where R: Read + Seek
-{
-    let mut char_to_weight: HashMap<u8, usize> = HashMap::new();
+        let chars = left_chars.union(right_chars).cloned().collect::<HashSet<u8>>();
+        let weight = left.data().unwrap().weight + right.data().unwrap().weight;
 
-    while let Ok(buffer) = input.read_byte() {
-        char_to_weight.entry(buffer).or_insert(0);
-        char_to_weight.get_mut(&buffer).map(|mut w| *w += 1);
-    }
-
-    let mut result = Vec::with_capacity(char_to_weight.len());
-    for (&ch, &weight) in &char_to_weight {
-        let chars = hashset!{ch};
-        let data: NodeData = NodeData {
+        let data = NodeData {
             chars: chars,
             weight: weight,
         };
-        result.push(BinaryTree::new_leaf(data));
+        Tree::new(data, left, right)
     }
 
-    result
-}
+    pub fn build_tree<R>(chars: &mut BitReader<R>) -> Tree
+        where R: Read + Seek
+    {
+        let mut leaves = compute_leaves(chars);
+        leaves.sort_by_key(|tree| tree.data().unwrap().weight);
 
-fn build_next_level(level: &[Tree], next_level: &mut Vec<Tree>) {
-    let n = level.len();
-    let mut i = 0;
-    while i < n {
-        let last_node_in_level = i == n - 1;
-        let new_parent_has_same_weight = match next_level.last() {
-            Some(tree) => tree.data().unwrap().weight <= level[i].data().unwrap().weight,
-            None => false,
-        };
-        if last_node_in_level || new_parent_has_same_weight {
-            let parent = new_parent(next_level.last().unwrap(), &level[i]);
-            next_level.pop();
-            next_level.push(parent);
-            i += 1;
-        } else {
-            let parent = new_parent(&level[i], &level[i + 1]);
-            next_level.push(parent);
-            i += 2;
+        let mut level = leaves;
+        let mut next_level = Vec::with_capacity(level.len() / 2 + 1);
+
+        loop {
+            let found_root = next_level.is_empty() && level.len() == 1;
+            if found_root {
+                break;
+            } else {
+                build_next_level(&level, &mut next_level);
+                level = next_level;
+                next_level = vec![];
+            }
         }
+
+        level[0].clone()
     }
-}
 
-fn new_parent(left: &Tree, right: &Tree) -> Tree {
-    let left_chars = &left.data().unwrap().chars;
-    let right_chars = &right.data().unwrap().chars;
+    pub fn compute_code(ch: u8, tree: &Tree) -> Code {
+        let mut tree = tree.clone();
 
-    let chars = left_chars.union(right_chars).cloned().collect::<HashSet<u8>>();
-    let weight = left.data().unwrap().weight + right.data().unwrap().weight;
+        let mut code = BitSet::new();
+        let mut length = 0;
 
-    let data = NodeData {
-        chars: chars,
-        weight: weight,
-    };
-    Tree::new(data, left, right)
-}
+        loop {
+            if tree.left_data().is_some() && tree.left_data().unwrap().chars.contains(&ch) {
+                tree = tree.left();
+            } else if tree.right_data().is_some() &&
+                      tree.right_data().unwrap().chars.contains(&ch) {
+                code.insert(length);
+                tree = tree.right();
+            } else {
+                break;
+            }
+            length += 1;
+        }
 
-fn build_tree<R>(chars: &mut BitReader<R>) -> Tree
-    where R: Read + Seek
-{
-    let mut leaves = compute_leaves(chars);
-    leaves.sort_by_key(|tree| tree.data().unwrap().weight);
+        assert!(tree.is_leaf());
 
-    let mut level = leaves;
-    let mut next_level = Vec::with_capacity(level.len() / 2 + 1);
-
-    loop {
-        let found_root = next_level.is_empty() && level.len() == 1;
-        if found_root {
-            break;
-        } else {
-            build_next_level(&level, &mut next_level);
-            level = next_level;
-            next_level = vec![];
+        Code {
+            length: length as u8,
+            data: code.as_slice()[0] as u8,
         }
     }
 
-    level[0].clone()
-}
-
-fn compute_code(ch: u8, tree: &Tree) -> Code {
-    let mut tree = tree.clone();
-
-    let mut code = BitSet::new();
-    let mut length = 0;
-
-    loop {
-        if tree.left_data().is_some() && tree.left_data().unwrap().chars.contains(&ch) {
-            tree = tree.left();
-        } else if tree.right_data().is_some() && tree.right_data().unwrap().chars.contains(&ch) {
-            code.insert(length);
-            tree = tree.right();
-        } else {
-            break;
+    pub fn build_dictionary(tree: &Tree) -> HashMap<u8, Code> {
+        let mut result = HashMap::new();
+        for &ch in &tree.data().unwrap().chars {
+            let code = compute_code(ch, tree);
+            result.insert(ch, code);
         }
-        length += 1;
-    }
-
-    assert!(tree.is_leaf());
-
-    Code {
-        length: length as u8,
-        data: code.as_slice()[0] as u8,
+        result
     }
 }
 
-fn build_dictionary(tree: &Tree) -> HashMap<u8, Code> {
-    let mut result = HashMap::new();
-    for &ch in &tree.data().unwrap().chars {
-        let code = compute_code(ch, tree);
-        result.insert(ch, code);
-    }
-    result
-}
+mod decompression {}
 
 #[cfg(test)]
 mod tests {
@@ -243,7 +257,7 @@ mod tests {
             })
             .collect::<Vec<super::NodeData>>();
 
-        let mut result: Vec<super::NodeData> = super::compute_leaves(&mut input)
+        let mut result: Vec<super::NodeData> = super::compression::compute_leaves(&mut input)
             .iter()
             .map(|tree| tree.data().unwrap().clone())
             .collect::<Vec<super::NodeData>>();
@@ -259,7 +273,7 @@ mod tests {
         let input_slice = text.as_bytes();
         let input = Cursor::new(input_slice);
         let mut input = BitReader::new(input);
-        let tree = super::build_tree(&mut input);
+        let tree = super::compression::build_tree(&mut input);
 
         let assert_weight = |expect: usize, tree: &super::Tree| {
             assert_eq!(expect, tree.data().unwrap().weight);
