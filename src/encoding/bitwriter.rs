@@ -1,14 +1,14 @@
 use std::io::{Write, Result};
 use std::ops::Drop;
 
-pub struct BitWriter<'a, W: Write + 'a> {
-    output: &'a mut W,
+pub struct BitWriter<W: Write> {
+    output: W,
     buffer: [u8; 1],
     position: u8,
 }
 
-impl<'a, W: Write> BitWriter<'a, W> {
-    pub fn new(output: &'a mut W) -> Self {
+impl<W: Write> BitWriter<W> {
+    pub fn new(output: W) -> Self {
         BitWriter {
             output: output,
             buffer: [0],
@@ -49,11 +49,11 @@ impl<'a, W: Write> BitWriter<'a, W> {
     }
 
     pub fn get_ref(&self) -> &W {
-        self.output
+        &self.output
     }
 
     pub fn get_mut(&mut self) -> &mut W {
-        self.output
+        &mut self.output
     }
 
     pub fn flush(&mut self) {
@@ -64,7 +64,7 @@ impl<'a, W: Write> BitWriter<'a, W> {
     }
 }
 
-impl<'a, T: Write> Drop for BitWriter<'a, T> {
+impl<T: Write> Drop for BitWriter<T> {
     fn drop(&mut self) {
         self.flush();
     }
@@ -77,10 +77,7 @@ mod tests {
 
     #[test]
     fn bits() {
-        let size = 2;
-        let buffer_vec: Vec<u8> = vec![0; size];
-        let mut buffer = Cursor::new(buffer_vec);
-        let mut writer = BitWriter::new(&mut buffer);
+        let mut writer = new_writer(2);
         assert_eq!(0, writer.get_ref().position());
 
         writer.write_bit(true).unwrap();
@@ -112,10 +109,7 @@ mod tests {
 
     #[test]
     fn two_bytes() {
-        let size = 2;
-        let buffer_vec: Vec<u8> = vec![0; size];
-        let mut buffer = Cursor::new(buffer_vec);
-        let mut writer = BitWriter::new(&mut buffer);
+        let mut writer = new_writer(2);
         assert_position(0, &writer);
         writer.write_byte(12).unwrap();
         assert_position(1, &writer);
@@ -123,13 +117,9 @@ mod tests {
         assert_position(2, &writer);
         assert_data(&[12, 34], &writer);
     }
-
     #[test]
     fn middle_byte() {
-        let size = 3;
-        let buffer_vec: Vec<u8> = vec![0; size];
-        let mut buffer = Cursor::new(buffer_vec);
-        let mut writer = BitWriter::new(&mut buffer);
+        let mut writer = new_writer(3);
         writer.write_bit(true).unwrap();
         writer.write_bit(false).unwrap();
         writer.write_bit(true).unwrap();
@@ -143,33 +133,24 @@ mod tests {
         assert_data(&[0b00001101, 0b00001000], &writer);
     }
 
-    #[test]
-    fn after_drop() {
-        let size = 2;
-        let buffer_vec: Vec<u8> = vec![0; size];
-        let mut buffer = Cursor::new(buffer_vec);
-        {
-            let mut writer = BitWriter::new(&mut buffer);
-            writer.write_byte(12).unwrap();
-            writer.write_bit(true).unwrap();
-            writer.write_bit(false).unwrap();
-            writer.write_bit(true).unwrap();
-            writer.write_bit(true).unwrap();
-            assert_position(1, &writer);
-        }
-        assert_eq!(vec![12, 0b00001101], *buffer.get_ref());
+    type MockWriter = BitWriter<Cursor<Vec<u8>>>;
+
+    fn new_writer(size: usize) -> MockWriter {
+        let buffer: Vec<u8> = vec![0; size];
+        let cursor = Cursor::new(buffer);
+        BitWriter::new(cursor)
     }
 
-    fn assert_data<'a>(expect: &[u8], writer: &'a BitWriter<'a, Cursor<Vec<u8>>>) {
+    fn assert_data(expect: &[u8], writer: &MockWriter) {
         assert_eq!(expect, get_data(writer));
     }
 
-    fn assert_position<'a>(expect: u64, writer: &'a BitWriter<'a, Cursor<Vec<u8>>>) {
+    fn assert_position(expect: u64, writer: &MockWriter) {
         assert_eq!(expect, writer.get_ref().position());
     }
 
-    fn get_data<'a>(writer: &'a BitWriter<'a, Cursor<Vec<u8>>>) -> &'a [u8] {
-        let cursor: &'a Cursor<Vec<u8>> = writer.get_ref();
+    fn get_data(writer: &MockWriter) -> &[u8] {
+        let cursor: &Cursor<Vec<u8>> = writer.get_ref();
         let pos: usize = cursor.position() as usize;
         &cursor.get_ref()[0..pos]
     }
