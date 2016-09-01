@@ -12,6 +12,7 @@ pub struct NodeData {
 
 pub type Tree = BinaryTree<NodeData>;
 
+#[derive(PartialEq, Eq, Hash)]
 pub struct Code {
     length: u8,
     data: u8,
@@ -212,7 +213,23 @@ mod decompression {
     pub fn read_dictionary<R>(input: &mut BitReader<R>) -> Result<CodesToChars>
         where R: Read
     {
-        unimplemented!();
+        let max_index = try!(input.read_byte());
+        let len = max_index + 1;
+        let len = len as usize;
+        let mut result = CodesToChars::with_capacity(len);
+
+        for _ in 0..len {
+            let code_length = try!(input.read_byte());
+            let code_data = try!(input.read_byte());
+            let ch = try!(input.read_byte());
+            let code = Code {
+                length: code_length,
+                data: code_data,
+            };
+            result.insert(code, ch);
+        }
+
+        Ok(result)
     }
 
     pub fn read_compressed<R>(input: &mut BitReader<R>,
@@ -221,7 +238,38 @@ mod decompression {
                               -> Result<usize>
         where R: Read
     {
-        unimplemented!();
+        let mut read_bytes = 0;
+
+        while let Some(ch) = read_char(input, codes_to_chars) {
+            println!("read_compressed ch={}", ch);
+            try!(output.write(&[ch]));
+            read_bytes += 1;
+        }
+
+        let read_bits = read_bytes * 8;
+        Ok(read_bits)
+    }
+
+    fn read_char<R>(input: &mut BitReader<R>, codes_to_chars: &CodesToChars) -> Option<u8>
+        where R: Read
+    {
+        let mut code = Code {
+            length: 0,
+            data: 0,
+        };
+
+        while let Ok(data) = input.read_bit() {
+            if data {
+                let bit = 1 << code.length;
+                code.data |= bit;
+            }
+            code.length += 1;
+            if let Some(&ch) = codes_to_chars.get(&code) {
+                return Some(ch);
+            }
+        }
+
+        None
     }
 }
 
@@ -256,7 +304,7 @@ mod tests {
         let decompressed_length = decompress(&mut compressed, decompressed.by_ref()).unwrap();
 
         assert!(compressed_length < decompressed_length);
-        assert!(decompressed_length == input_slice.len() * 8);
+        assert_eq!(decompressed_length, input_slice.len() * 8);
         assert_eq!(input_slice, &decompressed.get_ref()[..]);
     }
 
@@ -271,17 +319,17 @@ mod tests {
                             ('v', 1)];
         let expected = expected.into_iter()
             .map(|(ch, weight)| {
-                super::NodeData {
+                NodeData {
                     chars: hashset!{ch as u8},
                     weight: weight,
                 }
             })
-            .collect::<Vec<super::NodeData>>();
+            .collect::<Vec<NodeData>>();
 
-        let mut result: Vec<super::NodeData> = super::compression::compute_leaves(&mut input)
+        let mut result: Vec<NodeData> = super::compression::compute_leaves(&mut input)
             .iter()
             .map(|tree| tree.data().unwrap().clone())
-            .collect::<Vec<super::NodeData>>();
+            .collect::<Vec<NodeData>>();
         result.sort_by_key(|node| *node.chars.iter().next().unwrap());
 
         assert_eq!(expected, result);
@@ -296,7 +344,7 @@ mod tests {
         let mut input = BitReader::new(input);
         let tree = super::compression::build_tree(&mut input);
 
-        let assert_weight = |expect: usize, tree: &super::Tree| {
+        let assert_weight = |expect: usize, tree: &Tree| {
             assert_eq!(expect, tree.data().unwrap().weight);
         };
 
