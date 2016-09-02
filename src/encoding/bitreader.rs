@@ -1,4 +1,5 @@
-use std::io::{Read, Result, Error, ErrorKind};
+use byteorder::{BigEndian, ReadBytesExt};
+use std::io::{Cursor, Read, Result, Error, ErrorKind};
 
 pub struct BitReader<R: Read> {
     input: R,
@@ -49,6 +50,16 @@ impl<R: Read> BitReader<R> {
         Ok(result)
     }
 
+    pub fn read_u64(&mut self) -> Result<u64> {
+        let mut data = Vec::with_capacity(8);
+        for _ in 0..8 {
+            let byte = try!(self.read_byte());
+            data.push(byte);
+        }
+        let mut cursor = Cursor::new(data);
+        cursor.read_u64::<BigEndian>()
+    }
+
     pub fn get_ref(&self) -> &R {
         &self.input
     }
@@ -61,7 +72,89 @@ impl<R: Read> BitReader<R> {
 #[cfg(test)]
 mod tests {
     use std::io::Cursor;
+    use std::mem;
     use super::*;
+
+    #[quickcheck]
+    fn random_bits(xs: Vec<u8>) -> bool {
+        let input_slice = &xs[..];
+        let mut reader = BitReader::new(Cursor::new(input_slice));
+
+        for &i in input_slice {
+            for shift in 0..8 {
+                let bit = 1 << shift;
+                let expect = (i & bit) > 0;
+                let data = reader.read_bit().unwrap();
+                if expect != data {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+
+    #[quickcheck]
+    fn random_bytes(xs: Vec<u8>) -> bool {
+        let input_slice = &xs[..];
+        let mut reader = BitReader::new(Cursor::new(input_slice));
+
+        for &expect in input_slice {
+            let data = reader.read_byte().unwrap();
+            if expect != data {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    #[quickcheck]
+    fn random_u64s(xs: Vec<u64>) -> bool {
+        unsafe {
+            let input_slice = &xs[..];
+            let input_bytes = vec_to_u8_big_endian(input_slice);
+            let mut reader = BitReader::new(Cursor::new(&input_bytes[..]));
+
+            for &expect in input_slice {
+                let data = reader.read_u64().unwrap();
+                if expect != data {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+
+    #[quickcheck]
+    fn random_mixed_types(xs: Vec<u8>) -> bool {
+        let input_slice = &xs[..];
+        let mut reader = BitReader::new(Cursor::new(input_slice));
+        let mut bytes = true;
+
+        for &i in input_slice {
+            if bytes {
+                let expect = i;
+                let data = reader.read_byte().unwrap();
+                if expect != data {
+                    return false;
+                }
+            } else {
+                for shift in 0..8 {
+                    let bit = 1 << shift;
+                    let expect = (i & bit) > 0;
+                    let data = reader.read_bit().unwrap();
+                    if expect != data {
+                        return false;
+                    }
+                }
+            }
+            bytes = !bytes;
+        }
+
+        true
+    }
 
     #[test]
     fn simple() {
@@ -108,5 +201,49 @@ mod tests {
         assert_eq!(false, reader.read_bit().unwrap());
         assert_eq!(true, reader.read_bit().unwrap());
         assert!(reader.read_byte().is_err());
+    }
+
+    #[test]
+    fn test_vec_to_u8() {
+        unsafe {
+            let xs = vec![13u64];
+            assert_eq!(&[0, 0, 0, 0, 0, 0, 0, 13], &vec_to_u8_big_endian(&xs)[..]);
+
+            let xs = vec![1u64, 2];
+            assert_eq!(&[0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2],
+                       &vec_to_u8_big_endian(&xs)[..]);
+        }
+    }
+
+    unsafe fn vec_to_u8_big_endian<T>(input: &[T]) -> Vec<u8> {
+        let bytes_per_item = mem::size_of::<T>();
+        let n = input.len() * bytes_per_item;
+        let mut result = Vec::with_capacity(n);
+
+        let data: *const T = input.as_ptr();
+        let data: *const u8 = mem::transmute(data);
+
+        let mut i = 0;
+        while i < n {
+            let mut bytes_indexes = (0..bytes_per_item).collect::<Vec<_>>();
+            if cfg!(target_endian = "little") {
+                bytes_indexes.reverse();
+            }
+
+            let mut item = Vec::with_capacity(bytes_per_item);
+            for &offset in &bytes_indexes[..] {
+                let offs = i + offset;
+                let offs = offs as isize;
+                let p: *const u8 = data.offset(offs);
+                item.push(*p);
+            }
+
+            assert_eq!(bytes_per_item, item.len());
+            result.append(&mut item);
+
+            i += bytes_per_item;
+        }
+
+        result
     }
 }
