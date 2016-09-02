@@ -1,4 +1,5 @@
 use std::io::{Write, Result};
+use std::mem;
 use std::ops::Drop;
 
 pub struct BitWriter<W: Write> {
@@ -34,15 +35,28 @@ impl<W: Write> BitWriter<W> {
     }
 
     pub fn write_byte(&mut self, data: u8) -> Result<()> {
-        if self.position == 0 {
-            self.buffer[0] = data;
-            try!(self.output.write(&self.buffer));
-        } else {
-            for i in 0..8 {
-                let bit = 1 << i;
-                let d = (data & bit) > 0;
-                try!(self.write_bit(d));
-            }
+        for i in 0..8 {
+            let bit = 1 << i;
+            let d = (data & bit) > 0;
+            try!(self.write_bit(d));
+        }
+
+        Ok(())
+    }
+
+    #[allow(transmute_ptr_to_ref)]
+    pub unsafe fn write_u64(&mut self, data: u64) -> Result<()> {
+        let data: *const u64 = [data].as_ptr();
+        let data: &[u8; 8] = mem::transmute(data);
+
+        let mut bytes_indexes = (0..8).collect::<Vec<_>>();
+        if cfg!(target_endian = "little") {
+            bytes_indexes.reverse();
+        }
+
+        for &i in &bytes_indexes[..] {
+            let byte = data[i];
+            try!(self.write_byte(byte));
         }
 
         Ok(())
@@ -72,13 +86,73 @@ impl<T: Write> Drop for BitWriter<T> {
 
 #[cfg(test)]
 mod tests {
+    use byteorder::{BigEndian, ReadBytesExt};
     use std::io::Cursor;
+    use std::mem;
     use super::*;
+
+    #[quickcheck]
+    fn random_bits(xs: Vec<u8>) -> bool {
+        let mut writer = new_writer(xs.len());
+        for &i in &xs {
+            for shift in 0..8 {
+                let bit = 1 << shift;
+                let data = (i & bit) > 0;
+                writer.write_bit(data).unwrap();
+            }
+        }
+        writer.flush();
+        check_u8_data(&xs[..], &writer)
+    }
+
+    #[quickcheck]
+    fn random_bytes(xs: Vec<u8>) -> bool {
+        let mut writer = new_writer(xs.len());
+        for &i in &xs {
+            writer.write_byte(i).unwrap();
+        }
+        writer.flush();
+        check_u8_data(&xs[..], &writer)
+    }
+
+    #[quickcheck]
+    fn random_u64s(xs: Vec<u64>) -> bool {
+        let mut writer = new_writer(xs.len());
+        for &i in &xs {
+            unsafe {
+                writer.write_u64(i).unwrap();
+            }
+        }
+        writer.flush();
+        check_u64_data(&xs[..], &writer)
+    }
+
+    #[quickcheck]
+    fn random_mixed_types(xs: Vec<u8>) -> bool {
+        let mut writer = new_writer(xs.len());
+        let mut bytes = true;
+
+        for &i in &xs {
+            if bytes {
+                writer.write_byte(i).unwrap();
+            } else {
+                for shift in 0..8 {
+                    let bit = 1 << shift;
+                    let data = (i & bit) > 0;
+                    writer.write_bit(data).unwrap();
+                }
+            }
+            bytes = !bytes;
+        }
+        writer.flush();
+
+        check_u8_data(&xs[..], &writer)
+    }
 
     #[test]
     fn bits() {
         let mut writer = new_writer(2);
-        assert_eq!(0, writer.get_ref().position());
+        assert_position(0, &writer);
 
         writer.write_bit(true).unwrap();
         writer.write_bit(false).unwrap();
@@ -117,6 +191,7 @@ mod tests {
         assert_position(2, &writer);
         assert_data(&[12, 34], &writer);
     }
+
     #[test]
     fn middle_byte() {
         let mut writer = new_writer(3);
@@ -142,16 +217,42 @@ mod tests {
     }
 
     fn assert_data(expect: &[u8], writer: &MockWriter) {
-        assert_eq!(expect, get_data(writer));
+        assert_eq!(expect, get_u8_data(writer));
+    }
+
+    fn check_u8_data(expect: &[u8], writer: &MockWriter) -> bool {
+        expect == get_u8_data(writer)
+    }
+
+    fn check_u64_data(expect: &[u64], writer: &MockWriter) -> bool {
+        expect == &get_u64_data(writer)[..]
     }
 
     fn assert_position(expect: u64, writer: &MockWriter) {
         assert_eq!(expect, writer.get_ref().position());
     }
 
-    fn get_data(writer: &MockWriter) -> &[u8] {
+    fn get_u8_data(writer: &MockWriter) -> &[u8] {
         let cursor: &Cursor<Vec<u8>> = writer.get_ref();
-        let pos: usize = cursor.position() as usize;
+        let pos = cursor.position() as usize;
         &cursor.get_ref()[0..pos]
+    }
+
+    fn get_u64_data(writer: &MockWriter) -> Vec<u64> {
+        let cursor: &Cursor<Vec<u8>> = writer.get_ref();
+        let pos = cursor.position() as usize;
+        let bytes_per_item = mem::size_of::<u64>();
+
+        let mut result = Vec::with_capacity(pos / bytes_per_item);
+        let mut i = 0;
+        while i < pos {
+            let data = &cursor.get_ref()[i..(i + bytes_per_item)];
+            let mut cursor = Cursor::new(data);
+            let item = cursor.read_u64::<BigEndian>().unwrap();
+            result.push(item);
+            i += bytes_per_item;
+        }
+
+        result
     }
 }
