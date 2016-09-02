@@ -1,7 +1,7 @@
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 
 pub fn bubble_sort<T>(a: &mut Vec<T>) -> &mut Vec<T>
-    where T: PartialOrd + Display + Debug
+    where T: PartialOrd + Debug
 {
     let mut n = a.len();
     if n == 0 {
