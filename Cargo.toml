@@ -10,7 +10,7 @@ doctest = false
 
 [dependencies]
 byteorder = "0.5.3"
-clippy = {version="0.0.86", optional = true}
+clippy = {version="0.0", optional = true}
 getopts = "0.2"
 hyper = "0.9.10"
 libc = "0.2.14"
