@@ -3,12 +3,12 @@
 #![feature(io)]
 #![feature(plugin)]
 #![plugin(clippy)]
-#![plugin(quickcheck_macros)]
 
 #![feature(test)]
 extern crate test;
 
 #[cfg(test)]
+#[macro_use]
 extern crate quickcheck;
 
 #[macro_use]

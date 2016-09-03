@@ -354,32 +354,33 @@ mod tests {
         simple_assert_data(&[87, 86]);
     }
 
-    #[quickcheck]
-    fn random_items(text: Vec<u8>) -> bool {
-        let input_slice = &text[..];
-        let mut input = BitReader::new(Cursor::new(input_slice));
+    quickcheck! {
+        fn random_items(text: Vec<u8>) -> bool {
+            let input_slice = &text[..];
+            let mut input = BitReader::new(Cursor::new(input_slice));
 
-        let output: Vec<u8> = vec![];
-        let mut output = BitWriter::new(Cursor::new(output));
+            let output: Vec<u8> = vec![];
+            let mut output = BitWriter::new(Cursor::new(output));
 
-        let compressed_length = compress(&mut input, &mut output).unwrap();
+            let compressed_length = compress(&mut input, &mut output).unwrap();
 
-        let decompressed: Vec<u8> = vec![];
-        let mut decompressed = BufWriter::new(decompressed);
+            let decompressed: Vec<u8> = vec![];
+            let mut decompressed = BufWriter::new(decompressed);
 
-        let mut compressed: BitReader<&[u8]> = BitReader::new(&output.get_ref().get_ref()[..]);
-        let decompressed_length = decompress(&mut compressed, decompressed.by_ref()).unwrap();
+            let mut compressed: BitReader<&[u8]> = BitReader::new(&output.get_ref().get_ref()[..]);
+            let decompressed_length = decompress(&mut compressed, decompressed.by_ref()).unwrap();
 
-        if compressed_length == 0 && decompressed_length == 0 {
-            return true;
+            if compressed_length == 0 && decompressed_length == 0 {
+                return true;
+            }
+
+            let valid_compressed_length = compressed_length == 0 ||
+                                          compressed_length < decompressed_length;
+            let valid_decompressed_length = (input_slice.len() as u64) * 8 == decompressed_length;
+            let valid_decompressed_data = input_slice == &decompressed.get_ref()[..];
+
+            valid_compressed_length && valid_decompressed_length && valid_decompressed_data
         }
-
-        let valid_compressed_length = compressed_length == 0 ||
-                                      compressed_length < decompressed_length;
-        let valid_decompressed_length = (input_slice.len() as u64) * 8 == decompressed_length;
-        let valid_decompressed_data = input_slice == &decompressed.get_ref()[..];
-
-        valid_compressed_length && valid_decompressed_length && valid_decompressed_data
     }
 
     fn simple_assert_data(input_slice: &[u8]) {

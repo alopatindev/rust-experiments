@@ -75,72 +75,12 @@ mod tests {
     use std::mem;
     use super::*;
 
-    #[quickcheck]
-    fn random_bits(xs: Vec<u8>) -> bool {
-        let input_slice = &xs[..];
-        let mut reader = BitReader::new(Cursor::new(input_slice));
-
-        for &i in input_slice {
-            for shift in 0..8 {
-                let bit = 1 << shift;
-                let expect = (i & bit) > 0;
-                let data = reader.read_bit().unwrap();
-                if expect != data {
-                    return false;
-                }
-            }
-        }
-
-        true
-    }
-
-    #[quickcheck]
-    fn random_bytes(xs: Vec<u8>) -> bool {
-        let input_slice = &xs[..];
-        let mut reader = BitReader::new(Cursor::new(input_slice));
-
-        for &expect in input_slice {
-            let data = reader.read_byte().unwrap();
-            if expect != data {
-                return false;
-            }
-        }
-
-        true
-    }
-
-    #[quickcheck]
-    fn random_u64s(xs: Vec<u64>) -> bool {
-        unsafe {
+    quickcheck! {
+        fn random_bits(xs: Vec<u8>) -> bool {
             let input_slice = &xs[..];
-            let input_bytes = vec_to_u8_big_endian(input_slice);
-            let mut reader = BitReader::new(Cursor::new(&input_bytes[..]));
+            let mut reader = BitReader::new(Cursor::new(input_slice));
 
-            for &expect in input_slice {
-                let data = reader.read_u64().unwrap();
-                if expect != data {
-                    return false;
-                }
-            }
-        }
-
-        true
-    }
-
-    #[quickcheck]
-    fn random_mixed_types(xs: Vec<u8>) -> bool {
-        let input_slice = &xs[..];
-        let mut reader = BitReader::new(Cursor::new(input_slice));
-        let mut bytes = true;
-
-        for &i in input_slice {
-            if bytes {
-                let expect = i;
-                let data = reader.read_byte().unwrap();
-                if expect != data {
-                    return false;
-                }
-            } else {
+            for &i in input_slice {
                 for shift in 0..8 {
                     let bit = 1 << shift;
                     let expect = (i & bit) > 0;
@@ -150,10 +90,68 @@ mod tests {
                     }
                 }
             }
-            bytes = !bytes;
+
+            true
         }
 
-        true
+        fn random_bytes(xs: Vec<u8>) -> bool {
+            let input_slice = &xs[..];
+            let mut reader = BitReader::new(Cursor::new(input_slice));
+
+            for &expect in input_slice {
+                let data = reader.read_byte().unwrap();
+                if expect != data {
+                    return false;
+                }
+            }
+
+            true
+        }
+
+        fn random_u64s(xs: Vec<u64>) -> bool {
+            unsafe {
+                let input_slice = &xs[..];
+                let input_bytes = vec_to_u8_big_endian(input_slice);
+                let mut reader = BitReader::new(Cursor::new(&input_bytes[..]));
+
+                for &expect in input_slice {
+                    let data = reader.read_u64().unwrap();
+                    if expect != data {
+                        return false;
+                    }
+                }
+            }
+
+            true
+        }
+
+        fn random_mixed_types(xs: Vec<u8>) -> bool {
+            let input_slice = &xs[..];
+            let mut reader = BitReader::new(Cursor::new(input_slice));
+            let mut bytes = true;
+
+            for &i in input_slice {
+                if bytes {
+                    let expect = i;
+                    let data = reader.read_byte().unwrap();
+                    if expect != data {
+                        return false;
+                    }
+                } else {
+                    for shift in 0..8 {
+                        let bit = 1 << shift;
+                        let expect = (i & bit) > 0;
+                        let data = reader.read_bit().unwrap();
+                        if expect != data {
+                            return false;
+                        }
+                    }
+                }
+                bytes = !bytes;
+            }
+
+            true
+        }
     }
 
     #[test]

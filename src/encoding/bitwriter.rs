@@ -84,60 +84,58 @@ mod tests {
     use std::mem;
     use super::*;
 
-    #[quickcheck]
-    fn random_bits(xs: Vec<u8>) -> bool {
-        let mut writer = new_writer(xs.len());
-        for &i in &xs {
-            for shift in 0..8 {
-                let bit = 1 << shift;
-                let data = (i & bit) > 0;
-                writer.write_bit(data).unwrap();
-            }
-        }
-        writer.flush();
-        check_u8_data(&xs[..], &writer)
-    }
-
-    #[quickcheck]
-    fn random_bytes(xs: Vec<u8>) -> bool {
-        let mut writer = new_writer(xs.len());
-        for &i in &xs {
-            writer.write_byte(i).unwrap();
-        }
-        writer.flush();
-        check_u8_data(&xs[..], &writer)
-    }
-
-    #[quickcheck]
-    fn random_u64s(xs: Vec<u64>) -> bool {
-        let mut writer = new_writer(xs.len());
-        for &i in &xs {
-            writer.write_u64(i).unwrap();
-        }
-        writer.flush();
-        check_u64_data(&xs[..], &writer)
-    }
-
-    #[quickcheck]
-    fn random_mixed_types(xs: Vec<u8>) -> bool {
-        let mut writer = new_writer(xs.len());
-        let mut bytes = true;
-
-        for &i in &xs {
-            if bytes {
-                writer.write_byte(i).unwrap();
-            } else {
+    quickcheck! {
+        fn random_bits(xs: Vec<u8>) -> bool {
+            let mut writer = new_writer(xs.len());
+            for &i in &xs {
                 for shift in 0..8 {
                     let bit = 1 << shift;
                     let data = (i & bit) > 0;
                     writer.write_bit(data).unwrap();
                 }
             }
-            bytes = !bytes;
+            writer.flush();
+            check_u8_data(&xs[..], &writer)
         }
-        writer.flush();
 
-        check_u8_data(&xs[..], &writer)
+        fn random_bytes(xs: Vec<u8>) -> bool {
+            let mut writer = new_writer(xs.len());
+            for &i in &xs {
+                writer.write_byte(i).unwrap();
+            }
+            writer.flush();
+            check_u8_data(&xs[..], &writer)
+        }
+
+        fn random_u64s(xs: Vec<u64>) -> bool {
+            let mut writer = new_writer(xs.len());
+            for &i in &xs {
+                writer.write_u64(i).unwrap();
+            }
+            writer.flush();
+            check_u64_data(&xs[..], &writer)
+        }
+
+        fn random_mixed_types(xs: Vec<u8>) -> bool {
+            let mut writer = new_writer(xs.len());
+            let mut bytes = true;
+
+            for &i in &xs {
+                if bytes {
+                    writer.write_byte(i).unwrap();
+                } else {
+                    for shift in 0..8 {
+                        let bit = 1 << shift;
+                        let data = (i & bit) > 0;
+                        writer.write_bit(data).unwrap();
+                    }
+                }
+                bytes = !bytes;
+            }
+            writer.flush();
+
+            check_u8_data(&xs[..], &writer)
+        }
     }
 
     #[test]
