@@ -1,5 +1,5 @@
+use byteorder::{ByteOrder, BigEndian};
 use std::io::{Write, Result};
-use std::mem;
 use std::ops::Drop;
 
 pub struct BitWriter<W: Write> {
@@ -25,7 +25,7 @@ impl<W: Write> BitWriter<W> {
 
         if self.position >= 7 {
             self.position = 0;
-            try!(self.output.write(&self.buffer));
+            try!(self.output.write_all(&self.buffer));
             self.buffer[0] = 0;
         } else {
             self.position += 1;
@@ -44,19 +44,11 @@ impl<W: Write> BitWriter<W> {
         Ok(())
     }
 
-    #[allow(transmute_ptr_to_ref)]
-    pub unsafe fn write_u64(&mut self, data: u64) -> Result<()> {
-        let data: *const u64 = [data].as_ptr();
-        let data: &[u8; 8] = mem::transmute(data);
-
-        let mut bytes_indexes = (0..8).collect::<Vec<_>>();
-        if cfg!(target_endian = "little") {
-            bytes_indexes.reverse();
-        }
-
-        for &i in &bytes_indexes[..] {
-            let byte = data[i];
-            try!(self.write_byte(byte));
+    pub fn write_u64(&mut self, data: u64) -> Result<()> {
+        let mut buffer = [0; 8];
+        BigEndian::write_u64(&mut buffer, data);
+        for &i in &buffer {
+            try!(self.write_byte(i));
         }
 
         Ok(())
@@ -71,10 +63,11 @@ impl<W: Write> BitWriter<W> {
     }
 
     pub fn flush(&mut self) {
-        if self.buffer[0] > 0 {
-            let _ = self.output.write(&self.buffer);
+        if self.position != 0 {
+            let _ = self.output.write_all(&self.buffer);
+            self.position = 0;
         }
-        let _ = self.output.flush();
+        self.output.flush().unwrap();
     }
 }
 
@@ -119,9 +112,7 @@ mod tests {
     fn random_u64s(xs: Vec<u64>) -> bool {
         let mut writer = new_writer(xs.len());
         for &i in &xs {
-            unsafe {
-                writer.write_u64(i).unwrap();
-            }
+            writer.write_u64(i).unwrap();
         }
         writer.flush();
         check_u64_data(&xs[..], &writer)
