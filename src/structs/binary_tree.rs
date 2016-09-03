@@ -1,12 +1,13 @@
 use std::rc::Rc;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BinaryTree<T: Clone + PartialEq> {
     root: Link<T>,
 }
 
 pub type Link<T> = Option<Rc<Node<T>>>;
 
+#[derive(Debug)]
 pub struct Node<T: Clone + PartialEq> {
     data: T,
     left: Link<T>,

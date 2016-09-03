@@ -1,6 +1,6 @@
 use encoding::bitreader::BitReader;
 use encoding::bitwriter::BitWriter;
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap, HashSet};
 use std::io::{Read, Result, Seek, Write};
 use structs::binary_tree::BinaryTree;
 
@@ -28,6 +28,7 @@ pub fn compress<R, W>(input: &mut BitReader<R>, output: &mut BitWriter<W>) -> Re
     let mut input_bytes_read = 0;
     let tree = compression::build_tree(input, &mut input_bytes_read);
     let chars_to_codes = compression::build_dictionary(&tree);
+
     try!(compression::write_header(output, &chars_to_codes, &input_bytes_read));
     let result = compression::write_compressed(input, output, &chars_to_codes, &input_bytes_read);
     output.flush(); // FIXME
@@ -54,7 +55,7 @@ pub fn decompress<R>(input: &mut BitReader<R>, output: &mut Write) -> Result<u64
 mod compression {
     use encoding::bitreader::BitReader;
     use encoding::bitwriter::BitWriter;
-    use std::collections::{HashMap, HashSet};
+    use std::collections::{HashMap, HashSet, VecDeque};
     use std::io::{Read, Result, Seek, SeekFrom, Write};
     use structs::binary_tree::BinaryTree;
     use structs::bitset::BitSet;
@@ -141,24 +142,29 @@ mod compression {
         result
     }
 
-    pub fn build_next_level(level: &[Tree], next_level: &mut Vec<Tree>) {
+    pub fn build_next_level(level: &VecDeque<Tree>, next_level: &mut VecDeque<Tree>) {
         let n = level.len();
-        let mut i = 0;
-        while i < n {
-            let last_node_in_level = i == n - 1;
-            let new_parent_has_same_weight = match next_level.last() {
+        let mut k = n; // FIXME
+
+        while k > 0 {
+            let i = k - 1;
+            let last_node_in_level = i == 0;
+            let new_parent_has_same_weight = match next_level.front() {
                 Some(tree) => tree.data().unwrap().weight <= level[i].data().unwrap().weight,
                 None => false,
             };
             if last_node_in_level || new_parent_has_same_weight {
-                let parent = new_parent(next_level.last().unwrap(), &level[i]);
-                next_level.pop();
-                next_level.push(parent);
-                i += 1;
+                let head = next_level.pop_front().unwrap();
+                let parent = new_parent(&level[i], &head);
+                next_level.push_front(parent);
+                if last_node_in_level {
+                    break;
+                }
+                k -= 1;
             } else {
-                let parent = new_parent(&level[i], &level[i + 1]);
-                next_level.push(parent);
-                i += 2;
+                let parent = new_parent(&level[i], &level[i - 1]);
+                next_level.push_front(parent);
+                k -= 2;
             }
         }
     }
@@ -182,14 +188,23 @@ mod compression {
     {
         let mut leaves = compute_leaves(chars, input_bytes_read);
         leaves.sort_by_key(|tree| tree.data().unwrap().weight);
+        leaves.reverse();
 
-        let mut level = leaves;
+        let mut level = VecDeque::with_capacity(leaves.len());
+        for i in &leaves {
+            level.push_back(i.clone());
+        }
 
         if level.is_empty() {
             return BinaryTree::new_empty();
         }
 
-        let mut next_level = Vec::with_capacity(level.len() / 2 + 1);
+        let new_level = |level: &VecDeque<Tree>| -> VecDeque<Tree> {
+            let length = level.len() / 2 + 1;
+            VecDeque::with_capacity(length)
+        };
+
+        let mut next_level = new_level(&level);
 
         loop {
             let found_root = next_level.is_empty() && level.len() == 1;
@@ -198,7 +213,7 @@ mod compression {
             } else {
                 build_next_level(&level, &mut next_level);
                 level = next_level;
-                next_level = vec![];
+                next_level = new_level(&level);
             }
         }
 
@@ -405,6 +420,11 @@ mod tests {
         assert!(compressed_length == 0 || compressed_length < decompressed_length);
         assert_eq!(original_length, decompressed_length);
         assert_eq!(input_slice, decompressed.get_ref().as_slice());
+
+        // let savings = 1.0 - (compressed_length as f64) / (original_length as f64);
+        // println!("savings = {:.2}%% ; compressed_length = {}",
+        //          savings * 100.0,
+        //          compressed_length);
     }
 
     fn simple_assert(text: &str) {
@@ -464,25 +484,45 @@ mod tests {
 
         assert_eq!(all_chars, tree.data().unwrap().chars);
         assert_weight(17, &tree);
-        assert_weight(6, &tree.left());
-        assert_weight(2, &tree.left().left());
-        assert_weight(1, &tree.left().left().left());
-        assert!(tree.left().left().left().is_leaf());
-        assert_weight(1, &tree.left().left().right());
-        assert!(tree.left().left().right().is_leaf());
-        assert_weight(4, &tree.left().right());
+        assert_weight(11, &tree.left());
+        assert_weight(5, &tree.left().left());
+        assert!(tree.left().left().is_leaf());
+        assert_weight(6, &tree.left().right());
         assert_weight(2, &tree.left().right().left());
-        assert_weight(1, &tree.left().right().left().left());
-        assert!(tree.left().right().left().left().is_leaf());
-        assert_weight(1, &tree.left().right().left().right());
-        assert!(tree.left().right().left().right().is_leaf());
-        assert_weight(2, &tree.left().right().right());
-        assert_weight(11, &tree.right());
-        assert_weight(6, &tree.right().left());
-        assert_weight(2, &tree.right().left().left());
+        assert!(tree.left().right().left().is_leaf());
+        assert_weight(4, &tree.left().right().right());
+        assert!(tree.left().right().right().is_leaf());
+        assert_weight(6, &tree.right());
+        assert_weight(2, &tree.right().left());
+        assert_weight(1, &tree.right().left().left());
+        assert_weight(1, &tree.right().left().right());
         assert!(tree.right().left().left().is_leaf());
-        assert_weight(4, &tree.right().left().right());
         assert!(tree.right().left().right().is_leaf());
-        assert_weight(5, &tree.right().right());
+        assert_weight(4, &tree.right().right());
+        assert_weight(1, &tree.right().left().left());
+        assert_weight(1, &tree.right().left().right());
+        assert_weight(2, &tree.right().right().left());
+        assert!(tree.right().right().left().is_leaf());
+        assert_weight(2, &tree.right().right().right());
+        assert_weight(1, &tree.right().right().right().left());
+        assert_weight(1, &tree.right().right().right().right());
+        assert!(tree.right().right().right().left().is_leaf());
+        assert!(tree.right().right().right().right().is_leaf());
+    }
+
+    #[test]
+    fn build_dictionary() {
+        let text = "mississippi river";
+        let input_slice = text.as_bytes();
+        let input = Cursor::new(input_slice);
+        let mut input = BitReader::new(input);
+        let mut input_bytes_read = 0;
+        let tree = super::compression::build_tree(&mut input, &mut input_bytes_read);
+        let chars_to_codes = super::compression::build_dictionary(&tree);
+        for (&ch_a, code_a) in &chars_to_codes {
+            for (&ch_b, code_b) in &chars_to_codes {
+                assert!(ch_a == ch_b || code_a != code_b);
+            }
+        }
     }
 }
