@@ -68,11 +68,11 @@ mod compression {
     {
         if !chars_to_codes.is_empty() {
             let max_index = (chars_to_codes.len() - 1) as u8;
-            try!(output.write_byte(max_index));
+            try!(output.write_u8(max_index));
             for (&ch, code) in chars_to_codes {
-                try!(output.write_byte(code.length));
-                try!(output.write_byte(code.data));
-                try!(output.write_byte(ch));
+                try!(output.write_u8(code.length));
+                try!(output.write_u8(code.data));
+                try!(output.write_u8(ch));
             }
 
             try!(output.write_u64(*input_bytes_read));
@@ -95,7 +95,7 @@ mod compression {
         let mut bits_written = 0;
 
         while bytes_read < *input_bytes_read {
-            match input.read_byte() {
+            match input.read_u8() {
                 Ok(buffer) => {
                     let code = chars_to_codes.get(&buffer).unwrap();
                     for i in 0..code.length {
@@ -122,7 +122,7 @@ mod compression {
     {
         let mut char_to_weight: HashMap<u8, u64> = HashMap::new();
 
-        while let Ok(buffer) = input.read_byte() {
+        while let Ok(buffer) = input.read_u8() {
             char_to_weight.entry(buffer).or_insert(0);
             char_to_weight.get_mut(&buffer).map(|mut w| *w += 1);
             *input_bytes_read += 1;
@@ -256,7 +256,7 @@ mod decompression {
     pub fn read_header<R>(input: &mut BitReader<R>) -> Result<CodesToChars>
         where R: Read
     {
-        let len = match input.read_byte() {
+        let len = match input.read_u8() {
             Ok(max_index) => (max_index as usize) + 1,
             Err(_) => 0,
         };
@@ -264,9 +264,9 @@ mod decompression {
         let mut result = CodesToChars::with_capacity(len);
 
         for _ in 0..len {
-            let code_length = try!(input.read_byte());
-            let code_data = try!(input.read_byte());
-            let ch = try!(input.read_byte());
+            let code_length = try!(input.read_u8());
+            let code_data = try!(input.read_u8());
+            let ch = try!(input.read_u8());
             let code = Code {
                 length: code_length,
                 data: code_data,
@@ -285,6 +285,7 @@ mod decompression {
         where R: Read
     {
         assert!(uncompressed_bytes > 0);
+
         let mut read_bytes = 0;
         if uncompressed_bytes == 1 {
             // FIXME: remove
@@ -357,6 +358,8 @@ mod tests {
     quickcheck! {
         fn random_items(text: Vec<u8>) -> bool {
             let input_slice = &text[..];
+            let original_length = (input_slice.len() as u64) * 8;
+
             let mut input = BitReader::new(Cursor::new(input_slice));
 
             let output: Vec<u8> = vec![];
@@ -367,7 +370,7 @@ mod tests {
             let decompressed: Vec<u8> = vec![];
             let mut decompressed = BufWriter::new(decompressed);
 
-            let mut compressed: BitReader<&[u8]> = BitReader::new(&output.get_ref().get_ref()[..]);
+            let mut compressed: BitReader<&[u8]> = BitReader::new(output.get_ref().get_ref().as_slice());
             let decompressed_length = decompress(&mut compressed, decompressed.by_ref()).unwrap();
 
             if compressed_length == 0 && decompressed_length == 0 {
@@ -376,14 +379,15 @@ mod tests {
 
             let valid_compressed_length = compressed_length == 0 ||
                                           compressed_length < decompressed_length;
-            let valid_decompressed_length = (input_slice.len() as u64) * 8 == decompressed_length;
-            let valid_decompressed_data = input_slice == &decompressed.get_ref()[..];
+            let valid_decompressed_length = original_length == decompressed_length;
+            let valid_decompressed_data = input_slice == decompressed.get_ref().as_slice();
 
             valid_compressed_length && valid_decompressed_length && valid_decompressed_data
         }
     }
 
     fn simple_assert_data(input_slice: &[u8]) {
+        let original_length = (input_slice.len() as u64) * 8;
         let mut input = BitReader::new(Cursor::new(input_slice));
 
         let output: Vec<u8> = vec![];
@@ -394,12 +398,13 @@ mod tests {
         let decompressed: Vec<u8> = vec![];
         let mut decompressed = BufWriter::new(decompressed);
 
-        let mut compressed: BitReader<&[u8]> = BitReader::new(&output.get_ref().get_ref()[..]);
+        let mut compressed: BitReader<&[u8]> =
+            BitReader::new(output.get_ref().get_ref().as_slice());
         let decompressed_length = decompress(&mut compressed, decompressed.by_ref()).unwrap();
 
         assert!(compressed_length == 0 || compressed_length < decompressed_length);
-        assert_eq!((input_slice.len() as u64) * 8, decompressed_length);
-        assert_eq!(input_slice, &decompressed.get_ref()[..]);
+        assert_eq!(original_length, decompressed_length);
+        assert_eq!(input_slice, decompressed.get_ref().as_slice());
     }
 
     fn simple_assert(text: &str) {

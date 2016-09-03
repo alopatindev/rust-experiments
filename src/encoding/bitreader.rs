@@ -36,7 +36,7 @@ impl<R: Read> BitReader<R> {
         Ok(data)
     }
 
-    pub fn read_byte(&mut self) -> Result<u8> {
+    pub fn read_u8(&mut self) -> Result<u8> {
         let mut result = 0;
 
         for i in 0..8 {
@@ -53,7 +53,7 @@ impl<R: Read> BitReader<R> {
     pub fn read_u64(&mut self) -> Result<u64> {
         let mut data = Vec::with_capacity(8);
         for _ in 0..8 {
-            let byte = try!(self.read_byte());
+            let byte = try!(self.read_u8());
             data.push(byte);
         }
         let mut cursor = Cursor::new(data);
@@ -99,7 +99,7 @@ mod tests {
             let mut reader = BitReader::new(Cursor::new(input_slice));
 
             for &expect in input_slice {
-                let data = reader.read_byte().unwrap();
+                let data = reader.read_u8().unwrap();
                 if expect != data {
                     return false;
                 }
@@ -133,7 +133,7 @@ mod tests {
             for &i in input_slice {
                 if bytes {
                     let expect = i;
-                    let data = reader.read_byte().unwrap();
+                    let data = reader.read_u8().unwrap();
                     if expect != data {
                         return false;
                     }
@@ -166,7 +166,7 @@ mod tests {
         assert_eq!(false, reader.read_bit().unwrap());
         assert_eq!(true, reader.read_bit().unwrap());
         assert_eq!(true, reader.read_bit().unwrap());
-        assert_eq!(123, reader.read_byte().unwrap());
+        assert_eq!(123, reader.read_u8().unwrap());
     }
 
     #[test]
@@ -176,7 +176,7 @@ mod tests {
         assert_eq!(true, reader.read_bit().unwrap());
         assert_eq!(false, reader.read_bit().unwrap());
         assert_eq!(true, reader.read_bit().unwrap());
-        assert_eq!(0b01011000, reader.read_byte().unwrap());
+        assert_eq!(0b01011000, reader.read_u8().unwrap());
         assert_eq!(false, reader.read_bit().unwrap());
         assert_eq!(false, reader.read_bit().unwrap());
         assert_eq!(false, reader.read_bit().unwrap());
@@ -188,28 +188,29 @@ mod tests {
     fn read_too_much() {
         let input_slice = &[1u8, 2];
         let mut reader = BitReader::new(Cursor::new(input_slice));
-        assert_eq!(1, reader.read_byte().unwrap());
-        assert_eq!(2, reader.read_byte().unwrap());
+        assert_eq!(1, reader.read_u8().unwrap());
+        assert_eq!(2, reader.read_u8().unwrap());
         assert!(reader.read_bit().is_err());
-        assert!(reader.read_byte().is_err());
+        assert!(reader.read_u8().is_err());
 
         let input_slice = &[1u8, 2];
         let mut reader = BitReader::new(Cursor::new(input_slice));
-        assert_eq!(1, reader.read_byte().unwrap());
+        assert_eq!(1, reader.read_u8().unwrap());
         assert_eq!(false, reader.read_bit().unwrap());
         assert_eq!(true, reader.read_bit().unwrap());
-        assert!(reader.read_byte().is_err());
+        assert!(reader.read_u8().is_err());
     }
 
     #[test]
     fn test_vec_to_u8() {
         unsafe {
             let xs = vec![13u64];
-            assert_eq!(&[0, 0, 0, 0, 0, 0, 0, 13], &vec_to_u8_big_endian(&xs)[..]);
+            assert_eq!(&[0, 0, 0, 0, 0, 0, 0, 13],
+                       vec_to_u8_big_endian(&xs).as_slice());
 
             let xs = vec![1u64, 2];
             assert_eq!(&[0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2],
-                       &vec_to_u8_big_endian(&xs)[..]);
+                       vec_to_u8_big_endian(&xs).as_slice());
         }
     }
 

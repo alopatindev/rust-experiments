@@ -83,6 +83,6 @@ mod tests {
         let mut output = BufWriter::new(output);
 
         tail(&mut input, output.by_ref(), limit);
-        assert_eq!(expect.as_bytes(), &output.get_ref()[..]);
+        assert_eq!(expect.as_bytes(), output.get_ref().as_slice());
     }
 }

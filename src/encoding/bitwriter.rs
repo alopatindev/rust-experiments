@@ -34,7 +34,7 @@ impl<W: Write> BitWriter<W> {
         Ok(())
     }
 
-    pub fn write_byte(&mut self, data: u8) -> Result<()> {
+    pub fn write_u8(&mut self, data: u8) -> Result<()> {
         for i in 0..8 {
             let bit = 1 << i;
             let d = (data & bit) > 0;
@@ -48,7 +48,7 @@ impl<W: Write> BitWriter<W> {
         let mut buffer = [0; 8];
         BigEndian::write_u64(&mut buffer, data);
         for &i in &buffer {
-            try!(self.write_byte(i));
+            try!(self.write_u8(i));
         }
 
         Ok(())
@@ -101,7 +101,7 @@ mod tests {
         fn random_bytes(xs: Vec<u8>) -> bool {
             let mut writer = new_writer(xs.len());
             for &i in &xs {
-                writer.write_byte(i).unwrap();
+                writer.write_u8(i).unwrap();
             }
             writer.flush();
             check_u8_data(&xs[..], &writer)
@@ -122,7 +122,7 @@ mod tests {
 
             for &i in &xs {
                 if bytes {
-                    writer.write_byte(i).unwrap();
+                    writer.write_u8(i).unwrap();
                 } else {
                     for shift in 0..8 {
                         let bit = 1 << shift;
@@ -174,9 +174,9 @@ mod tests {
     fn two_bytes() {
         let mut writer = new_writer(2);
         assert_position(0, &writer);
-        writer.write_byte(12).unwrap();
+        writer.write_u8(12).unwrap();
         assert_position(1, &writer);
-        writer.write_byte(34).unwrap();
+        writer.write_u8(34).unwrap();
         assert_position(2, &writer);
         assert_data(&[12, 34], &writer);
     }
@@ -188,7 +188,7 @@ mod tests {
         writer.write_bit(false).unwrap();
         writer.write_bit(true).unwrap();
         assert_position(0, &writer);
-        writer.write_byte(1).unwrap();
+        writer.write_u8(1).unwrap();
         assert_position(1, &writer);
         writer.write_bit(true).unwrap();
         assert_position(1, &writer);
@@ -214,7 +214,7 @@ mod tests {
     }
 
     fn check_u64_data(expect: &[u64], writer: &MockWriter) -> bool {
-        expect == &get_u64_data(writer)[..]
+        expect == get_u64_data(writer).as_slice()
     }
 
     fn assert_position(expect: u64, writer: &MockWriter) {
@@ -224,7 +224,8 @@ mod tests {
     fn get_u8_data(writer: &MockWriter) -> &[u8] {
         let cursor: &Cursor<Vec<u8>> = writer.get_ref();
         let pos = cursor.position() as usize;
-        &cursor.get_ref()[0..pos]
+        let data = cursor.get_ref();
+        &data[0..pos]
     }
 
     fn get_u64_data(writer: &MockWriter) -> Vec<u64> {
