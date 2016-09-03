@@ -115,9 +115,11 @@ fn split(bounds: &Bounds) -> (Bounds, Bounds) {
 
 #[cfg(test)]
 mod tests {
+    extern crate rand;
+
+    use self::rand::Rng;
     use super::*;
     use test;
-    extern crate rand;
 
     #[test]
     fn simple() {
@@ -170,11 +172,14 @@ mod tests {
     }
 
     fn make_random_vec(n: usize) -> Vec<i32> {
-        let mut a = vec![0; n];
-        for it in &mut a {
-            *it = rand::random::<i32>() % 100;
+        let mut rng = rand::thread_rng();
+        let mut result = Vec::with_capacity(n);
+
+        for _ in 0..n {
+            result.push(rng.gen());
         }
-        a
+
+        result
     }
 
     const BENCH_MAX_N: usize = 1000;

@@ -1,5 +1,5 @@
 use byteorder::{BigEndian, ReadBytesExt};
-use std::io::{Cursor, Read, Result, Error, ErrorKind};
+use std::io::{Cursor, Error, ErrorKind, Read, Result, Seek, SeekFrom};
 
 pub struct BitReader<R: Read> {
     input: R,
@@ -25,8 +25,8 @@ impl<R: Read> BitReader<R> {
             }
         }
 
-        let bit = 1 << self.position;
-        let data = (self.buffer[0] & bit) > 0;
+        let shifted_one = 1 << self.position;
+        let data = (self.buffer[0] & shifted_one) > 0;
 
         self.position += 1;
         if self.position >= 8 {
@@ -42,8 +42,8 @@ impl<R: Read> BitReader<R> {
         for i in 0..8 {
             let data = try!(self.read_bit());
             if data {
-                let bit = 1 << i;
-                result |= bit;
+                let shifted_one = 1 << i;
+                result |= shifted_one;
             }
         }
 
@@ -52,10 +52,12 @@ impl<R: Read> BitReader<R> {
 
     pub fn read_u64(&mut self) -> Result<u64> {
         let mut data = Vec::with_capacity(8);
+
         for _ in 0..8 {
             let byte = try!(self.read_u8());
             data.push(byte);
         }
+
         let mut cursor = Cursor::new(data);
         cursor.read_u64::<BigEndian>()
     }
@@ -66,6 +68,13 @@ impl<R: Read> BitReader<R> {
 
     pub fn get_mut(&mut self) -> &mut R {
         &mut self.input
+    }
+}
+
+impl<R: Read + Seek> Seek for BitReader<R> {
+    fn seek(&mut self, pos: SeekFrom) -> Result<u64> {
+        // FIXME: maintain the state
+        self.input.seek(pos)
     }
 }
 
@@ -82,8 +91,8 @@ mod tests {
 
             for &i in input_slice {
                 for shift in 0..8 {
-                    let bit = 1 << shift;
-                    let expect = (i & bit) > 0;
+                    let shifted_one = 1 << shift;
+                    let expect = (i & shifted_one) > 0;
                     let data = reader.read_bit().unwrap();
                     if expect != data {
                         return false;
@@ -139,8 +148,8 @@ mod tests {
                     }
                 } else {
                     for shift in 0..8 {
-                        let bit = 1 << shift;
-                        let expect = (i & bit) > 0;
+                        let shifted_one = 1 << shift;
+                        let expect = (i & shifted_one) > 0;
                         let data = reader.read_bit().unwrap();
                         if expect != data {
                             return false;

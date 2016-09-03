@@ -1,6 +1,8 @@
 use std::mem;
 
-pub fn crc(data: u32, key: u32) -> u32 {
+pub type T = u32;
+
+pub fn crc(data: T, key: T) -> T {
     let key_length = leading_one(key);
     let key_shift = key_length - 1;
 
@@ -18,7 +20,7 @@ pub fn crc(data: u32, key: u32) -> u32 {
     }
 
     let bits_in_data = mem::size_of_val(&data) * 8;
-    let bits_in_data = bits_in_data as u32;
+    let bits_in_data = bits_in_data as T;
 
     data <<= bits_in_data - key_shift;
     data >>= bits_in_data - key_shift;
@@ -26,7 +28,7 @@ pub fn crc(data: u32, key: u32) -> u32 {
     data
 }
 
-pub fn verify(data: u32, key: u32, crc: u32) -> bool {
+pub fn verify(data: T, key: T, crc: T) -> bool {
     let key_length = leading_one(key);
     let crc_length = key_length - 1;
 
@@ -45,7 +47,7 @@ pub fn verify(data: u32, key: u32, crc: u32) -> bool {
     }
 }
 
-fn leading_one(data: u32) -> u32 {
+fn leading_one(data: T) -> T {
     let mut data = data;
 
     for i in 0.. {
@@ -78,7 +80,7 @@ mod tests {
     }
 
     quickcheck! {
-        fn random_data(data: u32) -> bool {
+        fn random_data(data: T) -> bool {
             let key = 0b1101;
             let crc = crc(data, key);
 
@@ -86,7 +88,9 @@ mod tests {
                 return false
             }
 
-            if verify(!data, key, crc) {
+            let corrupted_data = !data;
+
+            if verify(corrupted_data, key, crc) {
                 return false
             }
 

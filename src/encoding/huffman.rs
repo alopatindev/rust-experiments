@@ -90,7 +90,7 @@ mod compression {
         where R: Read + Seek,
               W: Write
     {
-        try!(input.get_mut().seek(SeekFrom::Start(0)));
+        try!(input.seek(SeekFrom::Start(0)));
 
         let mut bytes_read = 0;
         let mut bits_written = 0;
@@ -100,8 +100,8 @@ mod compression {
                 Ok(buffer) => {
                     let code = chars_to_codes.get(&buffer).unwrap();
                     for i in 0..code.length {
-                        let bit = 1 << i;
-                        let data = (code.data & bit) > 0;
+                        let shifted_one = 1 << i;
+                        let data = (code.data & shifted_one) > 0;
                         try!(output.write_bit(data));
                         bits_written += 1;
                     }
@@ -336,8 +336,8 @@ mod decompression {
 
         while let Ok(data) = input.read_bit() {
             if data {
-                let bit = 1 << code.length;
-                code.data |= bit;
+                let shifted_one = 1 << code.length;
+                code.data |= shifted_one;
             }
             code.length += 1;
             if let Some(&ch) = codes_to_chars.get(&code) {
@@ -351,23 +351,38 @@ mod decompression {
 
 #[cfg(test)]
 mod tests {
+    extern crate rand;
+
     use encoding::bitreader::BitReader;
     use encoding::bitwriter::BitWriter;
+    use self::rand::Rng;
     use std::io::{Cursor, BufWriter, Write};
     use super::*;
 
     #[test]
     fn simple() {
-        simple_assert_data(&[78, 77]);
-        simple_assert("mississippi river");
-        simple_assert("12");
-        simple_assert_data(&[66, 65]);
-        simple_assert("3");
-        simple_assert("");
-        simple_assert_data(&[3, 0, 3, 4, 0, 5, 31]);
-        simple_assert_data(&[94, 93]);
-        simple_assert_data(&[2, 1]);
-        simple_assert_data(&[87, 86]);
+        assert_text("mississippi river");
+        assert_text("12");
+        assert_text("3");
+        assert_text("");
+        assert_data(&[3, 0, 3, 4, 0, 5, 31]);
+        assert_data(&[2, 1]);
+        assert_data(&[66, 65]);
+    }
+
+    #[test]
+    #[should_panic(expected = "assertion failed: compressed_length == 0 || compressed_length < decompressed_length")]
+    fn full_alphabet() {
+        let mut input = (0..256).map(|x| x as u8).collect::<Vec<u8>>();
+        for _ in 0..5 {
+            let mut clone = input.clone();
+            input.append(&mut clone);
+        }
+
+        let mut rng = rand::thread_rng();
+        rng.shuffle(input.as_mut_slice());
+
+        assert_data(input.as_slice());
     }
 
     quickcheck! {
@@ -393,16 +408,16 @@ mod tests {
                 return true;
             }
 
-            let valid_compressed_length = compressed_length == 0 ||
-                                          compressed_length < decompressed_length;
             let valid_decompressed_length = original_length == decompressed_length;
             let valid_decompressed_data = input_slice == decompressed.get_ref().as_slice();
+            let valid_compressed_length = compressed_length == 0 ||
+                                          compressed_length < decompressed_length;
 
-            valid_compressed_length && valid_decompressed_length && valid_decompressed_data
+            valid_decompressed_length && valid_decompressed_data && valid_compressed_length
         }
     }
 
-    fn simple_assert_data(input_slice: &[u8]) {
+    fn assert_data(input_slice: &[u8]) {
         let original_length = (input_slice.len() as u64) * 8;
         let mut input = BitReader::new(Cursor::new(input_slice));
 
@@ -418,9 +433,9 @@ mod tests {
             BitReader::new(output.get_ref().get_ref().as_slice());
         let decompressed_length = decompress(&mut compressed, decompressed.by_ref()).unwrap();
 
-        assert!(compressed_length == 0 || compressed_length < decompressed_length);
         assert_eq!(original_length, decompressed_length);
         assert_eq!(input_slice, decompressed.get_ref().as_slice());
+        assert!(compressed_length == 0 || compressed_length < decompressed_length);
 
         // let savings = 1.0 - (compressed_length as f64) / (original_length as f64);
         // println!("savings = {:.2}%% ; compressed_length = {}",
@@ -428,8 +443,8 @@ mod tests {
         //          compressed_length);
     }
 
-    fn simple_assert(text: &str) {
-        simple_assert_data(text.as_bytes());
+    fn assert_text(text: &str) {
+        assert_data(text.as_bytes());
     }
 
     #[test]

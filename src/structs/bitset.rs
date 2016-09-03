@@ -4,7 +4,6 @@ use std::{fmt, mem};
 include!("bitset_iterators.rs");
 
 pub type B = usize;
-const ONE: B = 1 as B;
 
 #[derive(Default)]
 pub struct BitSet {
@@ -48,8 +47,8 @@ impl BitSet {
         if !self.contains(index) {
             self.maybe_grow_buckets(index);
             let (bucket_index, bit_index) = self.split_index(index);
-            let bit = ONE << bit_index;
-            self.buckets[bucket_index] |= bit;
+            let shifted_one = 1 << bit_index;
+            self.buckets[bucket_index] |= shifted_one;
             self.size += 1;
         }
     }
@@ -57,7 +56,7 @@ impl BitSet {
     pub fn remove(&mut self, index: usize) {
         if self.contains(index) {
             let (bucket_index, bit_index) = self.split_index(index);
-            let mask = !(ONE << bit_index);
+            let mask = !(1 << bit_index);
             self.buckets[bucket_index] &= mask;
             self.size -= 1;
         }
@@ -68,8 +67,8 @@ impl BitSet {
             false
         } else {
             let (bucket_index, bit_index) = self.split_index(index);
-            let bit = ONE << bit_index;
-            (self.buckets[bucket_index] & bit) > 0
+            let shifted_one = 1 << bit_index;
+            (self.buckets[bucket_index] & shifted_one) > 0
         }
     }
 
@@ -135,7 +134,7 @@ impl BitSet {
             let (bucket_index, bit_index) = self.split_index(i);
             let found = if bucket_index < self.buckets.len() {
                 let rest_of_bits = self.buckets[bucket_index] >> bit_index;
-                (rest_of_bits & ONE) == pattern_bit
+                (rest_of_bits & 1) == pattern_bit
             } else {
                 !pattern
             };
@@ -163,7 +162,7 @@ impl BitSet {
             let (bucket_index, bit_index) = self.split_index(i);
             let found = if bucket_index < self.buckets.len() {
                 let rest_of_bits = self.buckets[bucket_index] >> bit_index;
-                rest_of_bits & ONE == pattern_bit
+                (rest_of_bits & 1) == pattern_bit
             } else {
                 !pattern
             };

@@ -19,8 +19,8 @@ impl<W: Write> BitWriter<W> {
 
     pub fn write_bit(&mut self, data: bool) -> Result<()> {
         if data {
-            let bit = 1 << self.position;
-            self.buffer[0] |= bit;
+            let shifted_one = 1 << self.position;
+            self.buffer[0] |= shifted_one;
         }
 
         if self.position >= 7 {
@@ -36,8 +36,8 @@ impl<W: Write> BitWriter<W> {
 
     pub fn write_u8(&mut self, data: u8) -> Result<()> {
         for i in 0..8 {
-            let bit = 1 << i;
-            let d = (data & bit) > 0;
+            let shifted_one = 1 << i;
+            let d = (data & shifted_one) > 0;
             try!(self.write_bit(d));
         }
 
@@ -89,8 +89,8 @@ mod tests {
             let mut writer = new_writer(xs.len());
             for &i in &xs {
                 for shift in 0..8 {
-                    let bit = 1 << shift;
-                    let data = (i & bit) > 0;
+                    let shifted_one = 1 << shift;
+                    let data = (i & shifted_one) > 0;
                     writer.write_bit(data).unwrap();
                 }
             }
@@ -125,8 +125,8 @@ mod tests {
                     writer.write_u8(i).unwrap();
                 } else {
                     for shift in 0..8 {
-                        let bit = 1 << shift;
-                        let data = (i & bit) > 0;
+                        let shifted_one = 1 << shift;
+                        let data = (i & shifted_one) > 0;
                         writer.write_bit(data).unwrap();
                     }
                 }
