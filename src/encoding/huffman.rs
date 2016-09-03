@@ -385,7 +385,8 @@ mod tests {
             let decompressed: Vec<u8> = vec![];
             let mut decompressed = BufWriter::new(decompressed);
 
-            let mut compressed: BitReader<&[u8]> = BitReader::new(output.get_ref().get_ref().as_slice());
+            let mut compressed: BitReader<&[u8]> = BitReader::new(
+                output.get_ref().get_ref().as_slice());
             let decompressed_length = decompress(&mut compressed, decompressed.by_ref()).unwrap();
 
             if compressed_length == 0 && decompressed_length == 0 {
