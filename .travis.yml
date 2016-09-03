@@ -19,7 +19,10 @@ before_script: (cargo install rustfmt || true)
 script:
   - export PATH="${PATH}:${HOME}/.cargo/bin"
   - cargo fmt -- --write-mode=diff
-  - for i in 1..50 ; do cargo test --verbose || break 0 ; done
+  - for i in 1..100
+  -   do echo "running tests (attempt #${i})"
+  -   cargo test --verbose || exit 1
+  - done
   - cargo run --verbose --bin hello
   - cargo run --verbose --bin head -- -h
   - cargo run --verbose --bin head -- -n100 /var/log/dpkg.log
