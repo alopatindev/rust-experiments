@@ -25,6 +25,7 @@ Contents
 * encoding/base64.rs
 * encoding/bitreader.rs
 * encoding/bitwriter.rs
+* encoding/crc.rs
 * encoding/huffman.rs
 * encoding/unicode.rs
 * structs/binary_tree.rs
