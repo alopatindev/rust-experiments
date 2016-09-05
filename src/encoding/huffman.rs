@@ -371,7 +371,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "assertion failed: compressed_length == 0 || compressed_length < decompressed_length")]
+    #[should_panic(
+        expected =
+        "assertion failed: compressed_length == 0 || compressed_length < decompressed_length")]
     fn full_alphabet() {
         let mut input = (0..256).map(|x| x as u8).collect::<Vec<u8>>();
         for _ in 0..5 {

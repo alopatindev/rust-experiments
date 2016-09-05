@@ -47,6 +47,9 @@ fi
 
 #find src -type f -name '*.rs' -print0 | xargs -0 ~/.cargo/bin/rustfmt -v --write-mode overwrite
 
+cargo fmt -- --write-mode=diff || exit 1
+cargo test || exit 1
+
 ./scripts/update_readme.sh > /tmp/README.md
 diff -q README.md /tmp/README.md | grep differ && mv /tmp/README.md . || rm -f /tmp/README.md
 
