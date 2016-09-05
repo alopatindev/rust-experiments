@@ -73,14 +73,14 @@ impl<R: Read> BitReader<R> {
 
 impl<R: Read + Seek> Seek for BitReader<R> {
     fn seek(&mut self, pos: SeekFrom) -> Result<u64> {
-        // FIXME: maintain the state
+        self.position = 0;
         self.input.seek(pos)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
+    use std::io::{Cursor, Seek, SeekFrom};
     use std::mem;
     use super::*;
 
@@ -208,6 +208,31 @@ mod tests {
         assert_eq!(false, reader.read_bit().unwrap());
         assert_eq!(true, reader.read_bit().unwrap());
         assert!(reader.read_u8().is_err());
+    }
+
+    #[test]
+    fn seek() {
+        let input_slice = &[1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        let mut reader = BitReader::new(Cursor::new(input_slice));
+
+        assert_eq!(1, reader.read_u8().unwrap());
+        assert_eq!(2, reader.read_u8().unwrap());
+        assert_eq!(true, reader.read_bit().unwrap());
+        assert_eq!(true, reader.read_bit().unwrap());
+        assert_eq!(false, reader.read_bit().unwrap());
+
+        reader.seek(SeekFrom::Start(0)).unwrap();
+        assert_eq!(1, reader.read_u8().unwrap());
+        assert_eq!(2, reader.read_u8().unwrap());
+        assert_eq!(true, reader.read_bit().unwrap());
+        assert_eq!(true, reader.read_bit().unwrap());
+        assert_eq!(false, reader.read_bit().unwrap());
+
+        reader.seek(SeekFrom::Start(5)).unwrap();
+        assert_eq!(6, reader.read_u8().unwrap());
+
+        reader.seek(SeekFrom::End(-1)).unwrap();
+        assert_eq!(12, reader.read_u8().unwrap());
     }
 
     #[test]
