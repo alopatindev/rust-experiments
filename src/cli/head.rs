@@ -80,6 +80,29 @@ mod tests {
         head_assert("foo\n", "foo", 1);
     }
 
+    #[test]
+    fn flush() {
+        use super::FLUSH_AFTER_LINE;
+
+        let n = 2 * FLUSH_AFTER_LINE;
+        let limit = FLUSH_AFTER_LINE + 10;
+        let chars_per_line = 3;
+
+        let mut expect = String::with_capacity(limit * chars_per_line);
+        for i in 0..limit {
+            let item = format!("{}\n", i);
+            expect.push_str(&item[..]);
+        }
+
+        let mut text = String::with_capacity(n * chars_per_line);
+        for i in 0..n {
+            let item = format!("{}\n", i);
+            text.push_str(&item[..]);
+        }
+
+        head_assert(&expect[..], &text[..], limit);
+    }
+
     fn head_assert(expect: &str, text: &str, limit: usize) {
         let input = text.as_bytes();
         let mut input = BufReader::new(input);

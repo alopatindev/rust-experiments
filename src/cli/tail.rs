@@ -75,6 +75,29 @@ mod tests {
         tail_assert("foo\n", "foo", 1);
     }
 
+    #[test]
+    fn flush() {
+        use super::FLUSH_AFTER_LINE;
+
+        let n = 2 * FLUSH_AFTER_LINE;
+        let limit = FLUSH_AFTER_LINE + 10;
+        let chars_per_line = 3;
+
+        let mut expect = String::with_capacity(limit * chars_per_line);
+        for i in (n - limit)..n {
+            let item = format!("{}\n", i);
+            expect.push_str(&item[..]);
+        }
+
+        let mut text = String::with_capacity(n * chars_per_line);
+        for i in 0..n {
+            let item = format!("{}\n", i);
+            text.push_str(&item[..]);
+        }
+
+        tail_assert(&expect[..], &text[..], limit);
+    }
+
     fn tail_assert(expect: &str, text: &str, limit: usize) {
         let input = text.as_bytes();
         let mut input = BufReader::new(input);

@@ -387,10 +387,16 @@ mod tests {
         let mut b: BitSet = BitSet::new();
         assert_eq!(None, b.next_set_bit(usize::max_value()));
 
-
         b.insert(0);
         assert_eq!(Some(0), b.previous_set_bit(1));
         assert_eq!(None, b.previous_set_bit(0));
+    }
+
+    #[test]
+    fn out_of_buffer() {
+        let b: BitSet = BitSet::new();
+        let max_index = b.bucket_size_in_bits() - 1;
+        assert_eq!(Some(max_index + 1), b.next_bit(max_index, false));
     }
 
     #[test]
