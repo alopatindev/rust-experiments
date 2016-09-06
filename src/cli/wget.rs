@@ -28,7 +28,7 @@ pub struct Downloader {
 }
 
 impl Downloader {
-    pub fn new(url: &str, output_document: Option<String>) -> Downloader {
+    pub fn new(url: &str, output_document: Option<String>) -> Self {
         Downloader {
             url: url.to_string(),
             file_name: output_document,
