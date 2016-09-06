@@ -1,7 +1,15 @@
 pub struct HuffmanEncoder<W: Write> {
+    state: State,
     output: BitWriter<W>,
     char_to_code: HashMap<u8, Code>,
     char_to_weight: HashMap<u8, u64>,
+}
+
+#[derive(PartialEq, Debug)]
+enum State {
+    Initial,
+    Analyzed,
+    Compressed,
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -21,6 +29,7 @@ struct Code {
 impl<W: Write> HuffmanEncoder<W> {
     pub fn new(output: W) -> Self {
         HuffmanEncoder {
+            state: State::Initial,
             output: BitWriter::new(output),
             char_to_code: HashMap::with_capacity(256),
             char_to_weight: HashMap::with_capacity(256),
@@ -30,6 +39,8 @@ impl<W: Write> HuffmanEncoder<W> {
     pub fn analyze<R>(&mut self, input: R) -> Result<u64>
         where R: Read
     {
+        assert_eq!(State::Initial, self.state);
+
         let mut input = BitReader::new(input);
         let mut bytes_read = 0;
 
@@ -43,7 +54,9 @@ impl<W: Write> HuffmanEncoder<W> {
     }
 
     pub fn analyze_finish(&mut self) -> Result<()> {
-        // TODO: update state
+        assert_eq!(State::Initial, self.state);
+        self.state = State::Analyzed;
+
         let leaves = self.compute_leaves();
         let tree = self.build_tree(leaves);
         self.build_dictionary(tree);
@@ -53,6 +66,8 @@ impl<W: Write> HuffmanEncoder<W> {
     pub fn compress<R>(&mut self, input: R) -> Result<u64>
         where R: Read
     {
+        assert_eq!(State::Analyzed, self.state);
+
         let mut input = BitReader::new(input);
         let mut bits_written = 0;
 
@@ -71,8 +86,18 @@ impl<W: Write> HuffmanEncoder<W> {
     }
 
     pub fn compress_finish(&mut self) {
+        assert_eq!(State::Analyzed, self.state);
+        self.state = State::Compressed;
+
         self.output.flush();
-        // TODO: update state
+    }
+
+    pub fn position(&self) -> u64 {
+        self.output.position()
+    }
+
+    pub fn get_output_ref(&self) -> &W {
+        self.output.get_ref()
     }
 
     fn compute_leaves(&mut self) -> Vec<Tree> {
@@ -213,13 +238,5 @@ impl<W: Write> HuffmanEncoder<W> {
         }
 
         Ok(())
-    }
-
-    pub fn position(&self) -> u64 {
-        self.output.position()
-    }
-
-    pub fn get_output_ref(&self) -> &W {
-        self.output.get_ref()
     }
 }

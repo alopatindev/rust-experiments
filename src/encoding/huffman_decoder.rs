@@ -17,11 +17,11 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
         result
     }
 
-    pub fn decompress(&mut self,
-                      output: &mut Write,
-                      offset_bit: u64,
-                      original_length_bits: u64)
-                      -> Result<u64> {
+    pub fn decode(&mut self,
+                  output: &mut Write,
+                  offset_bit: u64,
+                  original_length_bits: u64)
+                  -> Result<u64> {
         let mut read_bytes = 0;
 
         if original_length_bits == 0 {

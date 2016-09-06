@@ -8,9 +8,11 @@ mod tests {
     use super::*;
     use super::{NodeData, Tree};
 
+    const INPUT_TEXT: &'static str = "mississippi river";
+
     #[test]
     fn simple() {
-        assert_text("mississippi river");
+        assert_text(INPUT_TEXT);
         assert_text("12");
         assert_text("3");
         assert_text("");
@@ -56,14 +58,14 @@ mod tests {
         let compressed = Cursor::new(coder.get_output_ref()
             .get_ref()
             .as_slice());
-        let mut decompressed = BufWriter::new(vec![]);
-        let decompressed_length_bits = HuffmanDecoder::new(compressed)
-            .decompress(decompressed.by_ref(), data_offset_bit, original_length_bits)
+        let mut decoded = BufWriter::new(vec![]);
+        let decoded_length_bits = HuffmanDecoder::new(compressed)
+            .decode(decoded.by_ref(), data_offset_bit, original_length_bits)
             .unwrap();
 
-        assert_eq!(original_length_bits, decompressed_length_bits);
-        assert_eq!(input_slice, decompressed.get_ref().as_slice());
-        assert!(compressed_length_bits <= decompressed_length_bits);
+        assert_eq!(original_length_bits, decoded_length_bits);
+        assert_eq!(input_slice, decoded.get_ref().as_slice());
+        assert!(compressed_length_bits <= decoded_length_bits);
 
         // let savings = 1.0 - (compressed_length_bits as f64) / (original_length_bits as f64);
         // println!("savings = {:.2}%% ; compressed_length = {}",
@@ -77,7 +79,7 @@ mod tests {
 
     #[test]
     fn compute_leaves() {
-        let text = "mississippi river";
+        let text = INPUT_TEXT;
         let input_slice = text.as_bytes();
         let input = Cursor::new(input_slice);
 
@@ -105,7 +107,7 @@ mod tests {
 
     #[test]
     fn build_tree() {
-        let text = "mississippi river";
+        let text = INPUT_TEXT;
         let input_slice = text.as_bytes();
         let mut coder = HuffmanEncoder::new(vec![]);
         let _ = coder.analyze(Cursor::new(input_slice)).unwrap();
@@ -152,7 +154,7 @@ mod tests {
 
     #[test]
     fn unique_codes() {
-        let text = "mississippi river";
+        let text = INPUT_TEXT;
         let input_slice = text.as_bytes();
 
         let mut coder = HuffmanEncoder::new(vec![]);
@@ -164,5 +166,46 @@ mod tests {
                 assert!(ch_a == ch_b || code_a != code_b);
             }
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn analyze_after_finish() {
+        let text = INPUT_TEXT;
+        let input_slice = text.as_bytes();
+
+        let mut coder = HuffmanEncoder::new(vec![]);
+        let _ = coder.analyze(Cursor::new(input_slice)).unwrap();
+        coder.analyze_finish().unwrap();
+        let _ = coder.analyze(Cursor::new(input_slice)).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn compress_after_finish() {
+        let text = INPUT_TEXT;
+        let input_slice = text.as_bytes();
+
+        let mut coder = HuffmanEncoder::new(vec![]);
+        let _ = coder.analyze(Cursor::new(input_slice)).unwrap();
+        coder.analyze_finish().unwrap();
+
+        let _ = coder.compress(Cursor::new(input_slice)).unwrap();
+        coder.compress_finish();
+        let _ = coder.compress(Cursor::new(input_slice)).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn analyze_after_compress() {
+        let text = INPUT_TEXT;
+        let input_slice = text.as_bytes();
+
+        let mut coder = HuffmanEncoder::new(vec![]);
+        let _ = coder.analyze(Cursor::new(input_slice)).unwrap();
+        coder.analyze_finish().unwrap();
+
+        let _ = coder.compress(Cursor::new(input_slice)).unwrap();
+        let _ = coder.analyze(Cursor::new(input_slice)).unwrap();
     }
 }
