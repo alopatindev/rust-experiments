@@ -56,9 +56,7 @@ impl<T: Clone + PartialEq> List<T> {
 
     pub fn contains(&self, data: T) -> bool {
         self.iter()
-            .filter(|&d| *d == data)
-            .next()
-            .is_some()
+            .any(|d| *d == data)
     }
 
     pub fn skip(&self, n: usize) -> Self {
