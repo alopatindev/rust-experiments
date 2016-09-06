@@ -146,10 +146,10 @@ impl<W: Write> HuffmanEncoder<W> {
 
     fn build_next_level(&self, level: &VecDeque<Tree>, next_level: &mut VecDeque<Tree>) {
         let n = level.len();
-        let mut k = n; // FIXME
+        let mut level_length = n;
 
-        while k > 0 {
-            let i = k - 1;
+        while level_length > 0 {
+            let i = level_length - 1;
             let last_node_in_level = i == 0;
             let new_parent_has_same_weight = match next_level.front() {
                 Some(tree) => tree.data().unwrap().weight <= level[i].data().unwrap().weight,
@@ -162,11 +162,11 @@ impl<W: Write> HuffmanEncoder<W> {
                 if last_node_in_level {
                     break;
                 }
-                k -= 1;
+                level_length -= 1;
             } else {
                 let parent = self.new_parent(&level[i], &level[i - 1]);
                 next_level.push_front(parent);
-                k -= 2;
+                level_length -= 2;
             }
         }
     }
@@ -198,8 +198,7 @@ impl<W: Write> HuffmanEncoder<W> {
     }
 
     fn compute_code(&self, ch: u8, tree: &Tree) -> Code {
-        let mut tree = tree.clone(); // FIXME
-
+        let mut tree = tree.clone();
         let mut code = BitSet::new();
         let mut length = 0;
 
