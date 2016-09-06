@@ -8,7 +8,7 @@ pub struct BitReader<R: Read> {
 }
 
 impl<R: Read> BitReader<R> {
-    pub fn new(input: R) -> BitReader<R> {
+    pub fn new(input: R) -> Self {
         BitReader {
             input: input,
             buffer: [0],
@@ -60,6 +60,14 @@ impl<R: Read> BitReader<R> {
 
         let mut cursor = Cursor::new(data);
         cursor.read_u64::<BigEndian>()
+    }
+
+    pub fn skip_bits(&mut self, bits: u64) -> Result<()> {
+        for _ in 0..bits {
+            let _ = try!(self.read_bit());
+        }
+
+        Ok(())
     }
 
     pub fn get_ref(&self) -> &R {
@@ -233,6 +241,18 @@ mod tests {
 
         reader.seek(SeekFrom::End(-1)).unwrap();
         assert_eq!(12, reader.read_u8().unwrap());
+    }
+
+    #[test]
+    fn skip_bits() {
+        let input_slice = &[1u8, 2, 3];
+        let mut reader = BitReader::new(Cursor::new(input_slice));
+        reader.skip_bits(7).unwrap();
+        assert_eq!(false, reader.read_bit().unwrap());
+        assert_eq!(false, reader.read_bit().unwrap());
+        assert_eq!(true, reader.read_bit().unwrap());
+        reader.skip_bits(6).unwrap();
+        assert_eq!(3, reader.read_u8().unwrap());
     }
 
     #[test]
