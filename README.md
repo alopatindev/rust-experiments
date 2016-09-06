@@ -26,7 +26,10 @@ Contents
 * encoding/bitreader.rs
 * encoding/bitwriter.rs
 * encoding/crc.rs
+* encoding/huffman_decoder.rs
+* encoding/huffman_encoder.rs
 * encoding/huffman.rs
+* encoding/huffman_tests.rs
 * encoding/unicode.rs
 * structs/binary_tree.rs
 * structs/bitset_iterators.rs
