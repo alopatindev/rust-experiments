@@ -2,16 +2,16 @@
 mod tests {
     extern crate rand;
 
-    use self::rand::Rng;
+    use rand::Rng;
     use std::collections::HashSet;
-    use std::io::{Cursor, BufWriter, Write};
+    use std::io::{Cursor, Write};
     use super::*;
     use super::{NodeData, Tree};
 
     const INPUT_TEXT: &'static str = "mississippi river";
 
     #[test]
-    fn simple() {
+    fn single_input() {
         assert_text(INPUT_TEXT);
         assert_text("12");
         assert_text("3");
@@ -19,6 +19,15 @@ mod tests {
         assert_data(&[3, 0, 3, 4, 0, 5, 31]);
         assert_data(&[2, 1]);
         assert_data(&[66, 65]);
+    }
+
+    #[test]
+    fn multiple_inputs() {
+        let inputs = vec![vec![1, 2]];
+        assert!(check_multiple(inputs));
+
+        let inputs = vec![vec![1, 2], vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10]];
+        assert!(check_multiple(inputs));
     }
 
     #[test]
@@ -37,44 +46,114 @@ mod tests {
 
     quickcheck! {
         fn random_items(text: Vec<u8>) -> bool {
-            assert_data(&text[..]);
-            true
+            check_data(&text[..])
+        }
+
+        fn random_multiple(inputs: Vec<Vec<u8>>) -> bool {
+            check_multiple(inputs)
         }
     }
 
-    fn assert_data(input_slice: &[u8]) {
-        let mut coder = HuffmanEncoder::new(Cursor::new(vec![]));
+    fn check_data(input_slice: &[u8]) -> bool {
+        let mut coder = HuffmanEncoder::new(vec![]);
         let original_length_bytes = input_slice.len() as u64;
         let original_length_bits = original_length_bytes * 8;
-        let analyzed_length_bits = coder.analyze(Cursor::new(input_slice)).unwrap();
+        let analyzed_length_bits = coder.analyze(input_slice).unwrap();
         assert_eq!(original_length_bits, analyzed_length_bits);
         let success = coder.analyze_finish().is_ok();
-        let data_offset_bit = coder.position();
         assert!(success);
+        let data_offset_bit = coder.position();
 
-        let compressed_length_bits = coder.compress(Cursor::new(input_slice)).unwrap();
+        let compressed_length_bits = coder.compress(input_slice).unwrap();
         coder.compress_finish();
 
-        let compressed = Cursor::new(coder.get_output_ref()
-            .get_ref()
-            .as_slice());
-        let mut decoded = BufWriter::new(vec![]);
+        let compressed = Cursor::new(coder.get_output_ref().as_slice());
+        let mut decoded = vec![];
         let decoded_length_bits = HuffmanDecoder::new(compressed)
             .decode(decoded.by_ref(), data_offset_bit, original_length_bits)
             .unwrap();
 
-        assert_eq!(original_length_bits, decoded_length_bits);
-        assert_eq!(input_slice, decoded.get_ref().as_slice());
-        assert!(compressed_length_bits <= decoded_length_bits);
+        if original_length_bits != decoded_length_bits {
+            return false;
+        }
+
+        if input_slice != decoded.as_slice() {
+            return false;
+        }
+
+        if compressed_length_bits > decoded_length_bits {
+            return false;
+        }
 
         // let savings = 1.0 - (compressed_length_bits as f64) / (original_length_bits as f64);
         // println!("savings = {:.2}%% ; compressed_length = {}",
         //          savings * 100.0,
         //          compressed_length_bits);
+
+        true
+    }
+
+    fn assert_data(data: &[u8]) {
+        assert!(check_data(data));
     }
 
     fn assert_text(text: &str) {
         assert_data(text.as_bytes());
+    }
+
+    fn check_multiple(inputs: Vec<Vec<u8>>) -> bool {
+        let mut coder = HuffmanEncoder::new(vec![]);
+
+        for i in &inputs {
+            let input_slice = i.as_slice();
+            let analyzed_length_bits = coder.analyze(input_slice).unwrap();
+
+            let original_length_bytes = input_slice.len() as u64;
+            let original_length_bits = original_length_bytes * 8;
+            assert_eq!(original_length_bits, analyzed_length_bits);
+        }
+
+        let success = coder.analyze_finish().is_ok();
+        assert!(success);
+
+        let mut offsets = Vec::with_capacity(inputs.len());
+        let mut compressed_lengths = Vec::with_capacity(inputs.len());
+        for i in &inputs {
+            let input_slice = i.as_slice();
+            let data_offset_bit = coder.position();
+            offsets.push(data_offset_bit);
+
+            let compressed_length_bits = coder.compress(input_slice).unwrap();
+            compressed_lengths.push(compressed_length_bits);
+        }
+
+        coder.compress_finish();
+
+        let compressed = Cursor::new(coder.get_output_ref().as_slice());
+        let mut decoder = HuffmanDecoder::new(compressed);
+
+        for i in 0..inputs.len() {
+            let original_length_bytes = inputs[i].len();
+            let original_length_bits = original_length_bytes * 8;
+            let data_offset_bit = offsets[i];
+
+            let mut decoded = Vec::with_capacity(original_length_bytes);
+
+            let original_length_bits = original_length_bits as u64;
+            let decoded_length_bits =
+                decoder.decode(&mut decoded, data_offset_bit, original_length_bits)
+                    .unwrap();
+
+            if original_length_bits != decoded_length_bits {
+                return false;
+            }
+
+            if inputs[i].as_slice() != decoded.as_slice() {
+                return false;
+            }
+        }
+
+        true
     }
 
     #[test]

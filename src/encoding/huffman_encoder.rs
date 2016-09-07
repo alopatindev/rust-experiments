@@ -217,6 +217,10 @@ impl<W: Write> HuffmanEncoder<W> {
 
         assert!(tree.is_leaf());
 
+        if length == 0 {
+            length = 1; // FIXME
+        }
+
         Code {
             length: length as u8,
             data: code.as_slice()[0] as u8,
@@ -224,16 +228,13 @@ impl<W: Write> HuffmanEncoder<W> {
     }
 
     fn write_header(&mut self) -> Result<()> {
-        if !self.char_to_code.is_empty() {
+        let dict_length = self.char_to_code.len() as u64; // TODO: u16
+        try!(self.output.write_u64(dict_length));
 
-            let max_index = (self.char_to_code.len() - 1) as u8;
-            try!(self.output.write_u8(max_index));
-
-            for (&ch, code) in &self.char_to_code {
-                try!(self.output.write_u8(code.length));
-                try!(self.output.write_u8(code.data));
-                try!(self.output.write_u8(ch));
-            }
+        for (&ch, code) in &self.char_to_code {
+            try!(self.output.write_u8(code.length));
+            try!(self.output.write_u8(code.data));
+            try!(self.output.write_u8(ch));
         }
 
         Ok(())
