@@ -74,6 +74,7 @@ impl<W: Write> BitWriter<W> {
             let _ = self.output.write_all(&self.buffer);
             self.position = 0;
         }
+
         self.output.flush().unwrap();
     }
 }
@@ -105,9 +106,15 @@ mod tests {
                 }
             }
 
-            assert_eq!(bits_written, writer.position());
+            if bits_written != writer.position() {
+                return false;
+            }
+
             writer.flush();
-            assert_eq!(bits_written, writer.position());
+
+            if bits_written != writer.position() {
+                return false;
+            }
 
             check_u8_data(&xs[..], &writer)
         }
@@ -121,9 +128,15 @@ mod tests {
                 bits_written += 8;
             }
 
-            assert_eq!(bits_written, writer.position());
+            if bits_written != writer.position() {
+                return false;
+            }
+
             writer.flush();
-            assert_eq!(bits_written, writer.position());
+
+            if bits_written != writer.position() {
+                return false;
+            }
 
             check_u8_data(&xs[..], &writer)
         }
@@ -137,9 +150,15 @@ mod tests {
                 bits_written += 64;
             }
 
-            assert_eq!(bits_written, writer.position());
+            if bits_written != writer.position() {
+                return false;
+            }
+
             writer.flush();
-            assert_eq!(bits_written, writer.position());
+
+            if bits_written != writer.position() {
+                return false;
+            }
 
             check_u64_data(&xs[..], &writer)
         }
@@ -164,9 +183,16 @@ mod tests {
                 bytes = !bytes;
             }
 
-            assert_eq!(bits_written, writer.position());
+            if bits_written != writer.position() {
+                return false;
+            }
+
             writer.flush();
-            assert_eq!(bits_written, writer.position());
+
+            if bits_written != writer.position() {
+                return false;
+            }
+
             check_u8_data(&xs[..], &writer)
         }
     }

@@ -33,9 +33,9 @@ pub fn binary_search<T>(a: &[T], pattern: &T) -> Option<usize>
 mod tests {
     extern crate rand;
 
-    use self::rand::Rng;
+    use rand::Rng;
     use super::*;
-    use test;
+    use test::Bencher;
 
     #[test]
     fn simple() {
@@ -138,7 +138,7 @@ mod tests {
     const BENCH_MAX_N: usize = 1000;
 
     #[bench]
-    fn bench_std(b: &mut test::Bencher) {
+    fn bench_std(b: &mut Bencher) {
         b.iter(|| {
             for n in 0..BENCH_MAX_N {
                 let a = make_random_sorted_vec(n);
@@ -148,7 +148,7 @@ mod tests {
     }
 
     #[bench]
-    fn bench_simple(b: &mut test::Bencher) {
+    fn bench_simple(b: &mut Bencher) {
         b.iter(|| {
             for n in 0..BENCH_MAX_N {
                 let a = make_random_sorted_vec(n);

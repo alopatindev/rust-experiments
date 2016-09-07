@@ -16,6 +16,10 @@ extern crate maplit;
 
 extern crate byteorder;
 
+extern crate nalgebra;
+
+extern crate rand;
+
 pub mod algorithms;
 pub mod cli;
 pub mod encoding;

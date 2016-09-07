@@ -1,5 +1,4 @@
-extern crate nalgebra;
-use self::nalgebra::clamp;
+use nalgebra::clamp;
 
 pub fn size_to_human_readable(bytes: f64) -> String {
     let to_postfix = |exponent| {

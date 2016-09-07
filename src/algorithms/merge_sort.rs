@@ -117,9 +117,9 @@ fn split(bounds: &Bounds) -> (Bounds, Bounds) {
 mod tests {
     extern crate rand;
 
-    use self::rand::Rng;
+    use rand::Rng;
     use super::*;
-    use test;
+    use test::Bencher;
 
     #[test]
     fn simple() {
@@ -185,7 +185,7 @@ mod tests {
     const BENCH_MAX_N: usize = 1000;
 
     #[bench]
-    fn bench_recursive(b: &mut test::Bencher) {
+    fn bench_recursive(b: &mut Bencher) {
         b.iter(|| {
             for n in 0..BENCH_MAX_N {
                 let mut a = make_random_vec(n);
@@ -195,7 +195,7 @@ mod tests {
     }
 
     #[bench]
-    fn bench_iterative(b: &mut test::Bencher) {
+    fn bench_iterative(b: &mut Bencher) {
         b.iter(|| {
             for n in 0..BENCH_MAX_N {
                 let mut a = make_random_vec(n);
