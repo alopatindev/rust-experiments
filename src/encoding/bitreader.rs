@@ -1,11 +1,15 @@
 use byteorder::{BigEndian, ReadBytesExt};
+use std::collections::VecDeque;
 use std::io::{Cursor, Error, ErrorKind, Read, Result, Seek, SeekFrom};
 
 pub struct BitReader<R: Read> {
     input: R,
     buffer: [u8; 1],
     position: u8,
+    queue: BitQueue,
 }
+
+type BitQueue = VecDeque<bool>;
 
 impl<R: Read> BitReader<R> {
     pub fn new(input: R) -> Self {
@@ -13,10 +17,15 @@ impl<R: Read> BitReader<R> {
             input: input,
             buffer: [0],
             position: 0,
+            queue: VecDeque::with_capacity(64),
         }
     }
 
     pub fn read_bit(&mut self) -> Result<bool> {
+        if let Some(data) = self.queue.pop_front() {
+            return Ok(data);
+        }
+
         if self.position == 0 {
             let bytes_read = try!(self.input.read(&mut self.buffer));
             if bytes_read == 0 {
@@ -37,25 +46,19 @@ impl<R: Read> BitReader<R> {
     }
 
     pub fn read_u8(&mut self) -> Result<u8> {
-        let mut result = 0;
-
-        for i in 0..8 {
-            let data = try!(self.read_bit());
-            if data {
-                let shifted_one = 1 << i;
-                result |= shifted_one;
-            }
-        }
-
-        Ok(result)
+        let mut rollback_queue = VecDeque::with_capacity(8);
+        self.read_u8_internal(&mut rollback_queue)
     }
 
     pub fn read_u64(&mut self) -> Result<u64> {
         let mut data = Vec::with_capacity(8);
+        let mut rollback_queue = VecDeque::with_capacity(64);
 
         for _ in 0..8 {
-            let byte = try!(self.read_u8());
-            data.push(byte);
+            match self.read_u8_internal(&mut rollback_queue) {
+                Ok(byte) => data.push(byte),
+                Err(e) => return Err(e),
+            }
         }
 
         let mut cursor = Cursor::new(data);
@@ -77,11 +80,34 @@ impl<R: Read> BitReader<R> {
     pub fn get_mut(&mut self) -> &mut R {
         &mut self.input
     }
+
+    fn read_u8_internal(&mut self, mut rollback_queue: &mut BitQueue) -> Result<u8> {
+        let mut result = 0;
+
+        for shift in 0..8 {
+            match self.read_bit() {
+                Ok(bit) => {
+                    rollback_queue.push_back(bit);
+                    if bit {
+                        let shifted_one = 1 << shift;
+                        result |= shifted_one;
+                    }
+                }
+                Err(e) => {
+                    self.queue.append(&mut rollback_queue);
+                    return Err(e);
+                }
+            }
+        }
+
+        Ok(result)
+    }
 }
 
 impl<R: Read + Seek> Seek for BitReader<R> {
     fn seek(&mut self, pos: SeekFrom) -> Result<u64> {
         self.position = 0;
+        self.queue.clear();
         self.input.seek(pos)
     }
 }
@@ -216,6 +242,30 @@ mod tests {
         assert_eq!(false, reader.read_bit().unwrap());
         assert_eq!(true, reader.read_bit().unwrap());
         assert!(reader.read_u8().is_err());
+    }
+
+    #[test]
+    fn read_after_too_much_u8() {
+        let input_slice = &[1u8, 2];
+        let mut reader = BitReader::new(Cursor::new(input_slice));
+        assert_eq!(1, reader.read_u8().unwrap());
+        assert_eq!(false, reader.read_bit().unwrap());
+        assert!(reader.read_u8().is_err());
+        assert_eq!(true, reader.read_bit().unwrap());
+    }
+
+    #[test]
+    fn read_after_too_much_u64() {
+        let input_slice = &[0u8, 0, 0, 0, 0, 0, 0, 1, 2];
+        let mut reader = BitReader::new(Cursor::new(input_slice));
+        assert_eq!(1, reader.read_u64().unwrap());
+        assert!(reader.read_u64().is_err());
+        assert_eq!(false, reader.read_bit().unwrap());
+        assert_eq!(true, reader.read_bit().unwrap());
+        for _ in 0..6 {
+            assert_eq!(false, reader.read_bit().unwrap());
+        }
+        assert!(reader.read_bit().is_err());
     }
 
     #[test]
