@@ -1,7 +1,7 @@
 use encoding::bitreader::BitReader;
 use encoding::bitwriter::BitWriter;
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::io::{Read, Result, Seek, SeekFrom, Write};
+use std::io::{Error, ErrorKind, Read, Result, Seek, SeekFrom, Write};
 use structs::binary_tree::BinaryTree;
 use structs::bitset::BitSet;
 

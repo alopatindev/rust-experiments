@@ -4,17 +4,18 @@ pub struct HuffmanDecoder<R: Read + Seek> {
 }
 
 impl<R: Read + Seek> HuffmanDecoder<R> {
-    pub fn new(input: R) -> Self {
+    pub fn new(input: R) -> Result<Self> {
         let mut result = HuffmanDecoder {
             input: BitReader::new(input),
             code_to_char: HashMap::new(),
         };
 
         if result.read_header().is_err() {
-            println!("Failed to read the header"); // FIXME: throw Err?
+            let e = Error::new(ErrorKind::InvalidInput, "Failed to read a header");
+            Err(e)
+        } else {
+            Ok(result)
         }
-
-        result
     }
 
     pub fn decode(&mut self,

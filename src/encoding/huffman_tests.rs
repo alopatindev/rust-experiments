@@ -70,6 +70,7 @@ mod tests {
         let compressed = Cursor::new(coder.get_output_ref().as_slice());
         let mut decoded = vec![];
         let decoded_length_bits = HuffmanDecoder::new(compressed)
+            .unwrap()
             .decode(decoded.by_ref(), data_offset_bit, original_length_bits)
             .unwrap();
 
@@ -130,7 +131,7 @@ mod tests {
         coder.compress_finish();
 
         let compressed = Cursor::new(coder.get_output_ref().as_slice());
-        let mut decoder = HuffmanDecoder::new(compressed);
+        let mut decoder = HuffmanDecoder::new(compressed).unwrap();
 
         for i in 0..inputs.len() {
             let original_length_bytes = inputs[i].len();
