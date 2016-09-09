@@ -50,6 +50,21 @@ impl<R: Read> BitReader<R> {
         self.read_u8_internal(&mut rollback_queue)
     }
 
+    pub fn read_u16(&mut self) -> Result<u16> {
+        let mut data = Vec::with_capacity(8);
+        let mut rollback_queue = VecDeque::with_capacity(16);
+
+        for _ in 0..2 {
+            match self.read_u8_internal(&mut rollback_queue) {
+                Ok(byte) => data.push(byte),
+                Err(e) => return Err(e),
+            }
+        }
+
+        let mut cursor = Cursor::new(data);
+        cursor.read_u16::<BigEndian>()
+    }
+
     pub fn read_u64(&mut self) -> Result<u64> {
         let mut data = Vec::with_capacity(8);
         let mut rollback_queue = VecDeque::with_capacity(64);
@@ -121,7 +136,7 @@ mod tests {
     quickcheck! {
         fn random_bits(xs: Vec<u8>) -> bool {
             let input_slice = &xs[..];
-            let mut reader = BitReader::new(Cursor::new(input_slice));
+            let mut reader = BitReader::new(input_slice);
 
             for &i in input_slice {
                 for shift in 0..8 {
@@ -139,7 +154,7 @@ mod tests {
 
         fn random_bytes(xs: Vec<u8>) -> bool {
             let input_slice = &xs[..];
-            let mut reader = BitReader::new(Cursor::new(input_slice));
+            let mut reader = BitReader::new(input_slice);
 
             for &expect in input_slice {
                 let data = reader.read_u8().unwrap();
@@ -155,7 +170,7 @@ mod tests {
             unsafe {
                 let input_slice = &xs[..];
                 let input_bytes = vec_to_u8_big_endian(input_slice);
-                let mut reader = BitReader::new(Cursor::new(&input_bytes[..]));
+                let mut reader = BitReader::new(&input_bytes[..]);
 
                 for &expect in input_slice {
                     let data = reader.read_u64().unwrap();
@@ -168,9 +183,26 @@ mod tests {
             true
         }
 
+        fn random_u16s(xs: Vec<u16>) -> bool {
+            unsafe {
+                let input_slice = &xs[..];
+                let input_bytes = vec_to_u8_big_endian(input_slice);
+                let mut reader = BitReader::new(&input_bytes[..]);
+
+                for &expect in input_slice {
+                    let data = reader.read_u16().unwrap();
+                    if expect != data {
+                        return false;
+                    }
+                }
+            }
+
+            true
+        }
+
         fn random_mixed_types(xs: Vec<u8>) -> bool {
             let input_slice = &xs[..];
-            let mut reader = BitReader::new(Cursor::new(input_slice));
+            let mut reader = BitReader::new(input_slice);
             let mut bytes = true;
 
             for &i in input_slice {

@@ -47,6 +47,16 @@ impl<W: Write> BitWriter<W> {
         Ok(())
     }
 
+    pub fn write_u16(&mut self, data: u16) -> Result<()> {
+        let mut buffer = [0; 2];
+        BigEndian::write_u16(&mut buffer, data);
+        for &i in &buffer {
+            try!(self.write_u8(i));
+        }
+
+        Ok(())
+    }
+
     pub fn write_u64(&mut self, data: u64) -> Result<()> {
         let mut buffer = [0; 8];
         BigEndian::write_u64(&mut buffer, data);
@@ -139,6 +149,28 @@ mod tests {
             }
 
             check_u8_data(&xs[..], &writer)
+        }
+
+        fn random_u16s(xs: Vec<u16>) -> bool {
+            let mut writer = new_writer(xs.len());
+            let mut bits_written = 0;
+
+            for &i in &xs {
+                writer.write_u16(i).unwrap();
+                bits_written += 16;
+            }
+
+            if bits_written != writer.position() {
+                return false;
+            }
+
+            writer.flush();
+
+            if bits_written != writer.position() {
+                return false;
+            }
+
+            check_u16_data(&xs[..], &writer)
         }
 
         fn random_u64s(xs: Vec<u64>) -> bool {
@@ -272,6 +304,10 @@ mod tests {
         expect == get_u8_data(writer)
     }
 
+    fn check_u16_data(expect: &[u16], writer: &MockWriter) -> bool {
+        expect == get_u16_data(writer).as_slice()
+    }
+
     fn check_u64_data(expect: &[u64], writer: &MockWriter) -> bool {
         expect == get_u64_data(writer).as_slice()
     }
@@ -285,6 +321,24 @@ mod tests {
         let pos = cursor.position() as usize;
         let data = cursor.get_ref();
         &data[0..pos]
+    }
+
+    fn get_u16_data(writer: &MockWriter) -> Vec<u16> {
+        let cursor: &Cursor<Vec<u8>> = writer.get_ref();
+        let pos = cursor.position() as usize;
+        let bytes_per_item = mem::size_of::<u16>();
+
+        let mut result = Vec::with_capacity(pos / bytes_per_item);
+        let mut i = 0;
+        while i < pos {
+            let data = &cursor.get_ref()[i..(i + bytes_per_item)];
+            let mut cursor = Cursor::new(data);
+            let item = cursor.read_u16::<BigEndian>().unwrap();
+            result.push(item);
+            i += bytes_per_item;
+        }
+
+        result
     }
 
     fn get_u64_data(writer: &MockWriter) -> Vec<u64> {
