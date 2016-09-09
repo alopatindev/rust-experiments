@@ -228,8 +228,8 @@ impl<W: Write> HuffmanEncoder<W> {
     }
 
     fn write_header(&mut self) -> Result<()> {
-        let dict_length = self.char_to_code.len() as u64; // TODO: u16
-        try!(self.output.write_u64(dict_length));
+        let dict_length = self.char_to_code.len() as u16;
+        try!(self.output.write_u16(dict_length));
 
         for (&ch, code) in &self.char_to_code {
             try!(self.output.write_u8(code.length));

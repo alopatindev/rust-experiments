@@ -51,7 +51,7 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
     }
 
     fn read_header(&mut self) -> Result<()> {
-        let dict_length = try!(self.input.read_u64()) as usize;
+        let dict_length = try!(self.input.read_u16()) as usize;
         self.code_to_char.reserve(dict_length);
 
         for _ in 0..dict_length {
