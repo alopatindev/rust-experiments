@@ -11,7 +11,7 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
         };
 
         if result.read_header().is_err() {
-            let e = Error::new(ErrorKind::InvalidInput, "Failed to read a header");
+            let e = Error::new(ErrorKind::InvalidInput, "Failed to read the header");
             Err(e)
         } else {
             Ok(result)
