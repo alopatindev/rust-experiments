@@ -7,56 +7,60 @@ extern crate walkdir;
 extern crate clap;
 
 use clap::{Arg, ArgGroup, ArgMatches, App};
+use rust_experiments::encoding::bitreader::BitReader;
+use rust_experiments::encoding::bitwriter::BitWriter;
 use rust_experiments::encoding::huffman::{HuffmanEncoder, HuffmanDecoder};
 use std::env;
 use std::fs;
-use std::io::{Result, Read, Write};
+use std::io::{Error, ErrorKind, Result, Read, Seek, SeekFrom, Write};
+use std::mem;
+use std::path::Path;
 use walkdir::WalkDir;
 
 #[derive(Debug)]
 pub struct FileEntry {
     offset_bits: u64,
     size_bytes: u64,
-    filename_bytes: u64,
+    filename_length_bytes: u64,
     filename: String,
 }
 
-fn create_archive(output_filename: &str, files: Vec<String>) -> Result<()> {
-    for i in &files {
-        let filenames = WalkDir::new(i)
-            .into_iter()
-            .filter_map(|f| f.ok())
-            .filter(|f| f.file_type().is_file() && f.path().to_str().is_some())
-            .map(|f| f.path().to_str().unwrap().to_string());
+pub fn create_archive(output_filename: &str, files: Vec<String>) -> Result<()> {
+    let mut entries = files_to_entries(files);
+    let entries_length = entries.len() as u64;
 
-        let mut entries: Vec<FileEntry> = filenames.map(|f| {
-                FileEntry {
-                    offset_bits: 0,
-                    size_bytes: 0,
-                    filename_bytes: f.len() as u64,
-                    filename: f,
-                }
-            })
-            .collect();
+    try!(create_parent_directories(output_filename));
+    let mut writer = try!(write_header(output_filename, &entries));
 
-        // TODO: write entries number
+    let mut encoder = HuffmanEncoder::new(writer.get_mut());
 
-        for entry in entries.iter_mut() {
-            println!("{:?}", entry);
-            // TODO: write initial entry
-        }
-
-        // TODO: write the data
-
-        // TODO: seek to 0 + sizeof(entries number)
-
-        for entry in entries {
-            // TODO: update offset_bits
-            // TODO: seek to the next entry
-        }
-
-        // TODO: flush
+    for entry in entries.iter() {
+        let f = try!(fs::File::open(entry.filename.clone()));
+        try!(encoder.analyze(f));
     }
+    try!(encoder.analyze_finish());
+
+    for entry in entries.iter_mut() {
+        let f = try!(fs::File::open(entry.filename.clone()));
+        try!(encoder.compress(f));
+        entry.offset_bits = encoder.position();
+    }
+    encoder.compress_finish();
+
+    let skip_length = mem::size_of_val(&entries_length);
+    try!(encoder.get_output_mut().seek(SeekFrom::Start(skip_length as u64)));
+
+    for entry in entries {
+        try!(encoder.get_writer_mut().write_u64(entry.offset_bits));
+
+        let skip_length = mem::size_of_val(&entry.offset_bits) +
+                          mem::size_of_val(&entry.size_bytes) +
+                          mem::size_of_val(&entry.filename_length_bytes) +
+                          entry.filename_length_bytes as usize;
+        try!(encoder.get_output_mut().seek(SeekFrom::Current(skip_length as i64)));
+    }
+
+    try!(encoder.get_output_mut().flush());
 
     Ok(())
 }
@@ -103,6 +107,75 @@ fn main() {
 
     match do_checked_main(matches, files) {
         Ok(_) => println!("OK"),
-        Err(_) => println!("Something went wrong"),
+        Err(e) => println!("Error: {:?}", e),
+    }
+}
+
+fn files_to_entries(files: Vec<String>) -> Vec<FileEntry> {
+    let mut entries = vec![];
+
+    for i in &files {
+        let filenames = WalkDir::new(i)
+            .into_iter()
+            .filter_map(|f| f.ok())
+            .filter(|f| f.file_type().is_file() && f.path().to_str().is_some())
+            .map(|f| f.path().to_str().unwrap().to_string());
+
+        let mut new_entries: Vec<FileEntry> = filenames.filter_map(|f| {
+                match fs::metadata(f.clone()) {
+                    Ok(meta) => {
+                        let size = meta.len();
+                        let entry = FileEntry {
+                            offset_bits: 0,
+                            size_bytes: size,
+                            filename_length_bytes: f.len() as u64,
+                            filename: f,
+                        };
+                        Some(entry)
+                    }
+                    Err(_) => None,
+                }
+            })
+            .collect();
+        entries.append(&mut new_entries);
+    }
+
+    entries
+}
+
+fn write_header(output_filename: &str, entries: &Vec<FileEntry>) -> Result<BitWriter<fs::File>> {
+    let entries_length = entries.len() as u64;
+    let output = try!(fs::File::create(output_filename));
+    let mut writer = BitWriter::new(output);
+
+    try!(writer.write_u64(entries_length));
+    for ref entry in entries {
+        try!(writer.write_u64(entry.offset_bits));
+        try!(writer.write_u64(entry.size_bytes));
+        try!(writer.write_u64(entry.filename_length_bytes));
+        for &ch in entry.filename.as_bytes() {
+            try!(writer.write_u8(ch));
+        }
+    }
+
+    Ok(writer)
+}
+
+fn create_parent_directories(filename: &str) -> Result<()> {
+    let path = Path::new(filename);
+
+    let e = Error::new(ErrorKind::InvalidInput,
+                       format!("'{}' has no directory", filename));
+
+    if let Some(directory) = path.parent() {
+        let result = fs::create_dir_all(directory);
+        return if result.is_ok() {
+            assert!(directory.metadata().unwrap().is_dir());
+            Ok(())
+        } else {
+            Err(e)
+        };
+    } else {
+        Err(e)
     }
 }

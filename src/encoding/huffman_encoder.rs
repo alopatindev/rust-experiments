@@ -100,6 +100,14 @@ impl<W: Write> HuffmanEncoder<W> {
         self.output.get_ref()
     }
 
+    pub fn get_output_mut(&mut self) -> &mut W {
+        self.output.get_mut()
+    }
+
+    pub fn get_writer_mut(&mut self) -> &mut BitWriter<W> {
+        &mut self.output
+    }
+
     fn compute_leaves(&mut self) -> Vec<Tree> {
         let mut leaves: Vec<Tree> = Vec::with_capacity(self.char_to_weight.len());
 
