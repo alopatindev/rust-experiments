@@ -12,6 +12,7 @@ use rust_experiments::encoding::bitwriter::BitWriter;
 use rust_experiments::encoding::huffman::{HuffmanEncoder, HuffmanDecoder};
 use std::env;
 use std::fs;
+use std::fs::File;
 use std::io::{Error, ErrorKind, Result, Read, Seek, SeekFrom, Write};
 use std::mem;
 use std::path::Path;
@@ -27,49 +28,23 @@ pub struct FileEntry {
 
 pub fn create_archive(output_filename: &str, files: Vec<String>) -> Result<()> {
     let mut entries = files_to_entries(files);
-    let entries_length = entries.len() as u64;
 
     try!(create_parent_directories(output_filename));
     let mut writer = try!(write_header(output_filename, &entries));
 
     let mut encoder = HuffmanEncoder::new(writer.get_mut());
+    try!(write_compressed_data(&mut entries, &mut encoder));
 
-    for entry in entries.iter() {
-        let f = try!(fs::File::open(entry.filename.clone()));
-        try!(encoder.analyze(f));
-    }
-    try!(encoder.analyze_finish());
-
-    for entry in entries.iter_mut() {
-        let f = try!(fs::File::open(entry.filename.clone()));
-        try!(encoder.compress(f));
-        entry.offset_bits = encoder.position();
-    }
-    encoder.compress_finish();
-
-    let skip_length = mem::size_of_val(&entries_length);
-    try!(encoder.get_output_mut().seek(SeekFrom::Start(skip_length as u64)));
-
-    for entry in entries {
-        try!(encoder.get_writer_mut().write_u64(entry.offset_bits));
-
-        let skip_length = mem::size_of_val(&entry.offset_bits) +
-                          mem::size_of_val(&entry.size_bytes) +
-                          mem::size_of_val(&entry.filename_length_bytes) +
-                          entry.filename_length_bytes as usize;
-        try!(encoder.get_output_mut().seek(SeekFrom::Current(skip_length as i64)));
-    }
-
+    try!(write_offsets(&entries, &mut encoder));
     try!(encoder.get_output_mut().flush());
-
     Ok(())
 }
 
-fn extract_archive(input_filename: &str, files: Vec<String>) -> Result<()> {
+pub fn extract_archive(input_filename: &str, files: Vec<String>) -> Result<()> {
     unimplemented!();
 }
 
-fn list_archive(input_filename: &str, files: Vec<String>) -> Result<()> {
+pub fn list_archive(input_filename: &str, files: Vec<String>) -> Result<()> {
     unimplemented!();
 }
 
@@ -143,9 +118,9 @@ fn files_to_entries(files: Vec<String>) -> Vec<FileEntry> {
     entries
 }
 
-fn write_header(output_filename: &str, entries: &Vec<FileEntry>) -> Result<BitWriter<fs::File>> {
+fn write_header(output_filename: &str, entries: &Vec<FileEntry>) -> Result<BitWriter<File>> {
     let entries_length = entries.len() as u64;
-    let output = try!(fs::File::create(output_filename));
+    let output = try!(File::create(output_filename));
     let mut writer = BitWriter::new(output);
 
     try!(writer.write_u64(entries_length));
@@ -159,6 +134,43 @@ fn write_header(output_filename: &str, entries: &Vec<FileEntry>) -> Result<BitWr
     }
 
     Ok(writer)
+}
+
+fn write_compressed_data(entries: &mut Vec<FileEntry>,
+                         encoder: &mut HuffmanEncoder<&mut File>)
+                         -> Result<()> {
+    for entry in entries.iter() {
+        let f = try!(File::open(entry.filename.clone()));
+        try!(encoder.analyze(f));
+    }
+    try!(encoder.analyze_finish());
+
+    for entry in entries.iter_mut() {
+        let f = try!(File::open(entry.filename.clone()));
+        try!(encoder.compress(f));
+        entry.offset_bits = encoder.position();
+    }
+    encoder.compress_finish();
+
+    Ok(())
+}
+
+fn write_offsets(entries: &Vec<FileEntry>, encoder: &mut HuffmanEncoder<&mut File>) -> Result<()> {
+    let entries_length = entries.len() as u64;
+    let skip_length = mem::size_of_val(&entries_length);
+    try!(encoder.get_output_mut().seek(SeekFrom::Start(skip_length as u64)));
+
+    for entry in entries {
+        try!(encoder.get_writer_mut().write_u64(entry.offset_bits));
+
+        let skip_length = mem::size_of_val(&entry.offset_bits) +
+                          mem::size_of_val(&entry.size_bytes) +
+                          mem::size_of_val(&entry.filename_length_bytes) +
+                          entry.filename_length_bytes as usize;
+        try!(encoder.get_output_mut().seek(SeekFrom::Current(skip_length as i64)));
+    }
+
+    Ok(())
 }
 
 fn create_parent_directories(filename: &str) -> Result<()> {
