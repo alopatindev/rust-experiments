@@ -240,3 +240,11 @@ impl<W: Write> HuffmanEncoder<W> {
         Ok(())
     }
 }
+
+impl<W: Write> Drop for HuffmanEncoder<W> {
+    fn drop(&mut self) {
+        if self.state == State::Analyzed {
+            self.compress_finish();
+        }
+    }
+}
