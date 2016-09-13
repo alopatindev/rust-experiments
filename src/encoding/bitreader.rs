@@ -152,10 +152,12 @@ impl<R: Read + Seek> BitReader<R> {
     }
 
     pub fn set_position(&mut self, position: u64) -> Result<()> {
-        let byte_position = position / 8;
-        let bit_offset = position % 8;
-        try!(self.seek(SeekFrom::Start(byte_position)));
-        try!(self.skip_bits(bit_offset));
+        if position != self.position() {
+            let byte_position = position / 8;
+            let bit_offset = position % 8;
+            try!(self.seek(SeekFrom::Start(byte_position)));
+            try!(self.skip_bits(bit_offset));
+        }
         Ok(())
     }
 }
