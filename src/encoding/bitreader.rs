@@ -150,6 +150,14 @@ impl<R: Read + Seek> BitReader<R> {
         };
         8 * bytes_fully_read + (self.position as u64)
     }
+
+    pub fn set_position(&mut self, position: u64) -> Result<()> {
+        let byte_position = position / 8;
+        let bit_offset = position % 8;
+        try!(self.seek(SeekFrom::Start(byte_position)));
+        try!(self.skip_bits(bit_offset));
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -330,6 +338,8 @@ mod tests {
         let input_slice = &[1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
         let mut reader = BitReader::new(Cursor::new(input_slice));
 
+        // FIXME: test seek return value
+
         assert_eq!(0, reader.position());
         assert_eq!(1, reader.read_u8().unwrap());
         assert_eq!(8, reader.position());
@@ -365,6 +375,37 @@ mod tests {
         // reader.seek(SeekFrom::End(-1)).unwrap();
         // assert_eq!(12, reader.read_u8().unwrap());
         // assert_eq!(input_slice.len() as u64 * 8, reader.position());
+    }
+
+    #[test]
+    fn set_position() {
+        let input_slice = &[1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        let mut reader = BitReader::new(Cursor::new(input_slice));
+
+        reader.set_position(8).unwrap();
+        assert_eq!(8, reader.position());
+        assert_eq!(false, reader.read_bit().unwrap());
+        assert_eq!(9, reader.position());
+
+        reader.set_position(7).unwrap();
+        assert_eq!(false, reader.read_bit().unwrap());
+        assert_eq!(8, reader.position());
+        assert_eq!(false, reader.read_bit().unwrap());
+        assert_eq!(9, reader.position());
+        assert_eq!(true, reader.read_bit().unwrap());
+        assert_eq!(10, reader.position());
+
+        reader.set_position(8).unwrap();
+        assert_eq!(2, reader.read_u8().unwrap());
+
+        reader.set_position(8).unwrap();
+        assert_eq!(2, reader.read_u8().unwrap());
+
+        for i in 0..12 {
+            reader.set_position(8 * i).unwrap();
+            let data = (i as u8) + 1;
+            assert_eq!(data, reader.read_u8().unwrap());
+        }
     }
 
     #[test]
