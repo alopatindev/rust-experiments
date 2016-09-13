@@ -3,7 +3,7 @@ use nalgebra::clamp;
 pub fn size_to_human_readable(bytes: f64) -> String {
     let to_postfix = |exponent| {
         match exponent {
-            0 => "bytes",
+            0 => "B",
             1 => "KiB",
             2 => "MiB",
             3 => "GiB",
@@ -41,8 +41,8 @@ mod tests {
     #[test]
     fn simple() {
         let two_power_ten: f64 = 1024.0;
-        assert_eq!("123 bytes".to_string(), size_to_human_readable(123.0));
-        assert_eq!("1023 bytes".to_string(), size_to_human_readable(1023.0));
+        assert_eq!("123 B".to_string(), size_to_human_readable(123.0));
+        assert_eq!("1023 B".to_string(), size_to_human_readable(1023.0));
         assert_eq!("1 KiB".to_string(), size_to_human_readable(two_power_ten));
 
         assert_eq!("1.5 KiB".to_string(),
