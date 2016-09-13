@@ -1,19 +1,18 @@
-#![feature(test)]
-
 extern crate rust_experiments;
 extern crate walkdir;
 
 #[macro_use]
 extern crate clap;
 
-use clap::{Arg, ArgGroup, ArgMatches, App};
+use clap::{ArgGroup, ArgMatches, App};
 use rust_experiments::encoding::bitreader::BitReader;
 use rust_experiments::encoding::bitwriter::BitWriter;
 use rust_experiments::encoding::huffman::{HuffmanEncoder, HuffmanDecoder};
+use rust_experiments::format::size_to_human_readable;
 use std::env;
 use std::fs;
 use std::fs::File;
-use std::io::{Error, ErrorKind, Result, Read, Seek, SeekFrom, Write};
+use std::io::{Error, ErrorKind, Result, Seek, SeekFrom, Write};
 use std::mem;
 use std::path::Path;
 use walkdir::WalkDir;
@@ -26,7 +25,11 @@ pub struct FileEntry {
     filename: String,
 }
 
-pub fn create_archive(output_filename: &str, files: Vec<String>) -> Result<()> {
+type Filenames = Vec<String>;
+type FileEntries = Vec<FileEntry>;
+type Encoder<'a> = HuffmanEncoder<&'a mut File>;
+
+pub fn create_archive(output_filename: &str, files: Filenames) -> Result<()> {
     let mut entries = files_to_entries(files);
 
     try!(create_parent_directories(output_filename));
@@ -37,18 +40,45 @@ pub fn create_archive(output_filename: &str, files: Vec<String>) -> Result<()> {
 
     try!(write_offsets(&entries, &mut encoder));
     try!(encoder.get_output_mut().flush());
+
     Ok(())
 }
 
-pub fn extract_archive(input_filename: &str, files: Vec<String>) -> Result<()> {
-    unimplemented!();
+pub fn extract_archive(input_filename: &str, files: Filenames) -> Result<()> {
+    // TODO: use files
+
+    let (entries, mut reader) = try!(load_header(input_filename));
+    let mut decoder = try!(HuffmanDecoder::new(reader.get_mut()));
+
+    for ref entry in &entries {
+        try!(create_parent_directories(entry.filename.as_str()));
+        let mut output = try!(File::create(entry.filename.clone()));
+        try!(decoder.get_reader_mut().set_position(entry.offset_bits));
+        try!(decoder.decode(&mut output, entry.offset_bits, entry.size_bytes * 8));
+        try!(output.flush());
+    }
+
+    Ok(())
 }
 
-pub fn list_archive(input_filename: &str, files: Vec<String>) -> Result<()> {
-    unimplemented!();
+pub fn list_archive(input_filename: &str, files: Filenames) -> Result<()> {
+    let (entries, _) = try!(load_header(input_filename));
+
+    // FIXME: doesn't really make "ls dir/" but more "ls -R dir*"
+    for ref entry in &entries {
+        // FIXME: performance can be improved
+        for ref i in &files {
+            if entry.filename.starts_with(i.as_str()) {
+                let size = size_to_human_readable(entry.size_bytes as f64);
+                println!("{:15}{}", size, entry.filename);
+                break;
+            }
+        }
+    }
+    Ok(())
 }
 
-fn do_checked_main(matches: ArgMatches, files: Vec<String>) -> Result<()> {
+fn do_checked_main(matches: ArgMatches, files: Filenames) -> Result<()> {
     if let Some(current_directory) = matches.value_of("C") {
         try!(env::set_current_dir(current_directory));
     }
@@ -67,7 +97,7 @@ fn do_checked_main(matches: ArgMatches, files: Vec<String>) -> Result<()> {
 
 fn main() {
     let matches = App::new("Archiver")
-        .args_from_usage("[FILE]... 'Files to compress or extract'
+        .args_from_usage("[FILE]... 'Filenames to compress or extract'
                             -C <current_directory> 'Change current directory'
                             -c <archive.huff> 'Create archive'
                             -l <archive.huff> 'List contents'
@@ -77,8 +107,7 @@ fn main() {
             .required(true))
         .get_matches();
 
-    let files: Vec<String> = values_t!(matches, "FILE", String)
-        .unwrap_or_else(|_| vec![".".to_string()]);
+    let files = values_t!(matches, "FILE", String).unwrap_or_else(|_| vec![".".to_string()]);
 
     match do_checked_main(matches, files) {
         Ok(_) => println!("OK"),
@@ -86,7 +115,7 @@ fn main() {
     }
 }
 
-fn files_to_entries(files: Vec<String>) -> Vec<FileEntry> {
+fn files_to_entries(files: Filenames) -> FileEntries {
     let mut entries = vec![];
 
     for i in &files {
@@ -96,7 +125,7 @@ fn files_to_entries(files: Vec<String>) -> Vec<FileEntry> {
             .filter(|f| f.file_type().is_file() && f.path().to_str().is_some())
             .map(|f| f.path().to_str().unwrap().to_string());
 
-        let mut new_entries: Vec<FileEntry> = filenames.filter_map(|f| {
+        let mut new_entries: FileEntries = filenames.filter_map(|f| {
                 match fs::metadata(f.clone()) {
                     Ok(meta) => {
                         let size = meta.len();
@@ -118,7 +147,7 @@ fn files_to_entries(files: Vec<String>) -> Vec<FileEntry> {
     entries
 }
 
-fn write_header(output_filename: &str, entries: &Vec<FileEntry>) -> Result<BitWriter<File>> {
+fn write_header(output_filename: &str, entries: &FileEntries) -> Result<BitWriter<File>> {
     let entries_length = entries.len() as u64;
     let output = try!(File::create(output_filename));
     let mut writer = BitWriter::new(output);
@@ -136,9 +165,7 @@ fn write_header(output_filename: &str, entries: &Vec<FileEntry>) -> Result<BitWr
     Ok(writer)
 }
 
-fn write_compressed_data(entries: &mut Vec<FileEntry>,
-                         encoder: &mut HuffmanEncoder<&mut File>)
-                         -> Result<()> {
+fn write_compressed_data(entries: &mut FileEntries, encoder: &mut Encoder) -> Result<()> {
     for entry in entries.iter() {
         let f = try!(File::open(entry.filename.clone()));
         try!(encoder.analyze(f));
@@ -147,15 +174,15 @@ fn write_compressed_data(entries: &mut Vec<FileEntry>,
 
     for entry in entries.iter_mut() {
         let f = try!(File::open(entry.filename.clone()));
+        entry.offset_bits = encoder.position(); // FIXME: wrong offset
         try!(encoder.compress(f));
-        entry.offset_bits = encoder.position();
     }
     encoder.compress_finish();
 
     Ok(())
 }
 
-fn write_offsets(entries: &Vec<FileEntry>, encoder: &mut HuffmanEncoder<&mut File>) -> Result<()> {
+fn write_offsets(entries: &FileEntries, encoder: &mut Encoder) -> Result<()> {
     let entries_length = entries.len() as u64;
     let skip_length = mem::size_of_val(&entries_length);
     try!(encoder.get_output_mut().seek(SeekFrom::Start(skip_length as u64)));
@@ -163,14 +190,44 @@ fn write_offsets(entries: &Vec<FileEntry>, encoder: &mut HuffmanEncoder<&mut Fil
     for entry in entries {
         try!(encoder.get_writer_mut().write_u64(entry.offset_bits));
 
-        let skip_length = mem::size_of_val(&entry.offset_bits) +
-                          mem::size_of_val(&entry.size_bytes) +
+        let skip_length = mem::size_of_val(&entry.size_bytes) +
                           mem::size_of_val(&entry.filename_length_bytes) +
                           entry.filename_length_bytes as usize;
-        try!(encoder.get_output_mut().seek(SeekFrom::Current(skip_length as i64)));
+        let skip_length = skip_length as i64;
+        try!(encoder.get_output_mut().seek(SeekFrom::Current(skip_length)));
     }
 
     Ok(())
+}
+
+fn load_header(input_filename: &str) -> Result<(FileEntries, BitReader<File>)> {
+    let input = try!(File::open(input_filename));
+    let mut reader = BitReader::new(input);
+    let entries_length = try!(reader.read_u64());
+    let mut entries = Vec::with_capacity(entries_length as usize);
+
+    for _ in 0..entries_length {
+        let offset_bits = try!(reader.read_u64());
+        let size_bytes = try!(reader.read_u64());
+        let filename_length_bytes = try!(reader.read_u64());
+
+        let mut filename = Vec::with_capacity(filename_length_bytes as usize);
+        for _ in 0..filename_length_bytes {
+            let ch = try!(reader.read_u8());
+            filename.push(ch);
+        }
+        let filename = String::from_utf8_lossy(&filename[..]).into_owned();
+
+        let entry = FileEntry {
+            offset_bits: offset_bits,
+            size_bytes: size_bytes,
+            filename_length_bytes: filename_length_bytes,
+            filename: filename,
+        };
+        entries.push(entry);
+    }
+
+    Ok((entries, reader))
 }
 
 fn create_parent_directories(filename: &str) -> Result<()> {
