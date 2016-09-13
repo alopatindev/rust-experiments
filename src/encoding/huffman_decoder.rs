@@ -51,6 +51,14 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
         Ok(read_bits)
     }
 
+    pub fn get_input_mut(&mut self) -> &mut R {
+        self.input.get_mut()
+    }
+
+    pub fn get_reader_mut(&mut self) -> &mut BitReader<R> {
+        &mut self.input
+    }
+
     fn read_header(&mut self) -> Result<()> {
         let dict_length = try!(self.input.read_u16()) as usize;
         self.code_to_char.reserve(dict_length);
