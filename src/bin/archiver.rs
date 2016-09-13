@@ -64,7 +64,7 @@ pub fn extract_archive(input_filename: &str, files: Filenames) -> Result<()> {
 pub fn list_archive(input_filename: &str, files: Filenames) -> Result<()> {
     let (entries, _) = try!(load_header(input_filename));
 
-    // FIXME: doesn't really make "ls dir/" but more "ls -R dir*"
+    // FIXME: doesn't currently do "ls dir/" but more "ls -R dir*"
     for ref entry in &entries {
         // FIXME: performance can be improved
         for ref i in &files {
@@ -174,7 +174,7 @@ fn write_compressed_data(entries: &mut FileEntries, encoder: &mut Encoder) -> Re
 
     for entry in entries.iter_mut() {
         let f = try!(File::open(entry.filename.clone()));
-        entry.offset_bits = encoder.position(); // FIXME: wrong offset
+        entry.offset_bits = encoder.position();
         try!(encoder.compress(f));
     }
     encoder.compress_finish();

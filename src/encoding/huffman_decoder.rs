@@ -31,9 +31,7 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
 
         let original_length_bytes = original_length_bits / 8;
 
-        let offset_byte = offset_bit / 8;
-        let _ = try!(self.input.seek(SeekFrom::Start(offset_byte)));
-        try!(self.input.skip_bits(offset_bit % 8));
+        try!(self.input.set_position(offset_bit));
 
         while read_bytes < original_length_bytes {
             match self.read_char() {
