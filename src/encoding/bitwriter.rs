@@ -79,19 +79,19 @@ impl<W: Write> BitWriter<W> {
         8 * self.bytes_written + (self.position as u64)
     }
 
-    pub fn flush(&mut self) {
+    pub fn flush(&mut self) -> Result<()> {
         if self.position != 0 {
             let _ = self.output.write_all(&self.buffer);
             self.position = 0;
         }
 
-        self.output.flush().unwrap();
+        self.output.flush()
     }
 }
 
 impl<T: Write> Drop for BitWriter<T> {
     fn drop(&mut self) {
-        self.flush();
+        self.flush().unwrap();
     }
 }
 
@@ -120,7 +120,7 @@ mod tests {
                 return false;
             }
 
-            writer.flush();
+            writer.flush().unwrap();
 
             if bits_written != writer.position() {
                 return false;
@@ -129,6 +129,7 @@ mod tests {
             check_u8_data(&xs[..], &writer)
         }
 
+        // FIXME: replace with macro
         fn random_bytes(xs: Vec<u8>) -> bool {
             let mut bits_written = 0;
 
@@ -142,7 +143,7 @@ mod tests {
                 return false;
             }
 
-            writer.flush();
+            writer.flush().unwrap();
 
             if bits_written != writer.position() {
                 return false;
@@ -164,7 +165,7 @@ mod tests {
                 return false;
             }
 
-            writer.flush();
+            writer.flush().unwrap();
 
             if bits_written != writer.position() {
                 return false;
@@ -186,7 +187,7 @@ mod tests {
                 return false;
             }
 
-            writer.flush();
+            writer.flush().unwrap();
 
             if bits_written != writer.position() {
                 return false;
@@ -219,7 +220,7 @@ mod tests {
                 return false;
             }
 
-            writer.flush();
+            writer.flush().unwrap();
 
             if bits_written != writer.position() {
                 return false;
@@ -284,7 +285,7 @@ mod tests {
         writer.write_bit(true).unwrap();
         assert_bytes_written(1, &writer);
         assert_data(&[0b00001101], &writer);
-        writer.flush();
+        writer.flush().unwrap();
         assert_data(&[0b00001101, 0b00001000], &writer);
     }
 

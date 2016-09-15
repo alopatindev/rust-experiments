@@ -45,34 +45,51 @@ pub fn create_archive(output_filename: &str, files: Filenames) -> Result<()> {
 }
 
 pub fn extract_archive(input_filename: &str, files: Filenames) -> Result<()> {
-    // TODO: use files
+    let match_all_files = files.is_empty();
 
     let (entries, mut reader) = try!(load_header(input_filename));
     let mut decoder = try!(HuffmanDecoder::new(reader.get_mut()));
 
+    let mut unpacked = 0;
+
     for ref entry in &entries {
-        try!(create_parent_directories(entry.filename.as_str()));
-        let mut output = try!(File::create(entry.filename.clone()));
-        try!(decoder.get_reader_mut().set_position(entry.offset_bits));
-        try!(decoder.decode(&mut output, entry.offset_bits, entry.size_bytes * 8));
-        try!(output.flush());
+        // FIXME: poor performance
+        let file_matched = match_all_files ||
+                           files.iter()
+            .any(|i| filename_matches(i, &entry.filename));
+        if file_matched {
+            print!("unpacking {} ...", entry.filename);
+            try!(create_parent_directories(entry.filename.as_str()));
+            let mut output = try!(File::create(entry.filename.clone()));
+            try!(decoder.get_reader_mut().set_position(entry.offset_bits));
+            try!(decoder.decode(&mut output, entry.offset_bits, entry.size_bytes * 8));
+            try!(output.flush());
+            println!(" ok");
+            unpacked += 1;
+        }
     }
 
-    Ok(())
+    if unpacked == 0 {
+        let e = Error::new(ErrorKind::NotFound, "nothing to unpack");
+        Err(e)
+    } else {
+        Ok(())
+    }
 }
 
 pub fn list_archive(input_filename: &str, files: Filenames) -> Result<()> {
     let (entries, _) = try!(load_header(input_filename));
+    let match_all_files = files.is_empty();
 
-    // FIXME: doesn't currently do "ls dir/" but more "ls -R dir*"
     for ref entry in &entries {
-        // FIXME: performance can be improved
-        for ref i in &files {
-            if entry.filename.starts_with(i.as_str()) {
-                let size = size_to_human_readable(entry.size_bytes as f64);
-                println!("{:15}{}", size, entry.filename);
-                break;
-            }
+        // FIXME: poor performance
+        let file_matched = match_all_files ||
+                           files.iter()
+            .any(|i| filename_matches(i, &entry.filename));
+
+        if file_matched {
+            let size = size_to_human_readable(entry.size_bytes as f64);
+            println!("{:15}{}", size, entry.filename);
         }
     }
     Ok(())
@@ -107,7 +124,7 @@ fn main() {
             .required(true))
         .get_matches();
 
-    let files = values_t!(matches, "FILE", String).unwrap_or_else(|_| vec![".".to_string()]);
+    let files = values_t!(matches, "FILE", String).unwrap_or_else(|_| vec![]);
 
     match do_checked_main(matches, files) {
         Ok(_) => println!("OK"),
@@ -177,9 +194,8 @@ fn write_compressed_data(entries: &mut FileEntries, encoder: &mut Encoder) -> Re
         entry.offset_bits = encoder.position();
         try!(encoder.compress(f));
     }
-    encoder.compress_finish();
 
-    Ok(())
+    encoder.compress_finish()
 }
 
 fn write_offsets(entries: &FileEntries, encoder: &mut Encoder) -> Result<()> {
@@ -247,4 +263,9 @@ fn create_parent_directories(filename: &str) -> Result<()> {
     } else {
         Err(e)
     }
+}
+
+fn filename_matches(pattern: &String, filename: &String) -> bool {
+    let pattern_is_directory = pattern.ends_with("/");
+    (pattern_is_directory && filename.starts_with(pattern.as_str())) || (pattern == filename)
 }

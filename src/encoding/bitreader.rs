@@ -262,6 +262,32 @@ mod tests {
 
             true
         }
+
+        fn random_positions(xs: Vec<u8>, position: u64) -> bool {
+            if xs.is_empty() {
+                return true;
+            }
+
+            let input_slice = &xs[..];
+            let mut reader = BitReader::new(Cursor::new(input_slice));
+            let mut position = position % (xs.len() as u64);
+            reader.set_position(position).unwrap();
+
+            while let Ok(data) = reader.read_bit() {
+                let index = position / 8;
+                let shift = position % 8;
+                let shifted_one = 1 << shift;
+                let expect = (xs[index as usize] & shifted_one) > 0;
+                if expect != data {
+                    return false;
+                }
+
+                position += 1;
+                let _ = reader.set_position(position);
+            }
+
+            true
+        }
     }
 
     #[test]

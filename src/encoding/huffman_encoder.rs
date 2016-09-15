@@ -85,11 +85,11 @@ impl<W: Write> HuffmanEncoder<W> {
         Ok(bits_written)
     }
 
-    pub fn compress_finish(&mut self) {
+    pub fn compress_finish(&mut self) -> Result<()> {
         assert_eq!(State::Analyzed, self.state);
         self.state = State::Compressed;
 
-        self.output.flush();
+        self.output.flush()
     }
 
     pub fn position(&self) -> u64 {
@@ -252,7 +252,7 @@ impl<W: Write> HuffmanEncoder<W> {
 impl<W: Write> Drop for HuffmanEncoder<W> {
     fn drop(&mut self) {
         if self.state == State::Analyzed {
-            self.compress_finish();
+            self.compress_finish().unwrap();
         }
     }
 }
