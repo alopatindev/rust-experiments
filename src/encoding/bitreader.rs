@@ -283,7 +283,7 @@ mod tests {
                 }
 
                 position += 1;
-                let _ = reader.set_position(position);
+                reader.set_position(position).unwrap();
             }
 
             true

@@ -33,10 +33,10 @@ pub fn create_archive(output_filename: &str, files: Filenames) -> Result<()> {
     let mut entries = files_to_entries(files);
 
     try!(create_parent_directories(output_filename));
-    let mut writer = try!(write_header(output_filename, &entries));
+    let (header_length_bits, mut writer) = try!(write_header(output_filename, &entries));
 
     let mut encoder = HuffmanEncoder::new(writer.get_mut());
-    try!(write_compressed_data(&mut entries, &mut encoder));
+    try!(write_compressed_data(&mut entries, &mut encoder, header_length_bits));
 
     try!(write_offsets(&entries, &mut encoder));
     try!(encoder.get_output_mut().flush());
@@ -164,7 +164,7 @@ fn files_to_entries(files: Filenames) -> FileEntries {
     entries
 }
 
-fn write_header(output_filename: &str, entries: &FileEntries) -> Result<BitWriter<File>> {
+fn write_header(output_filename: &str, entries: &FileEntries) -> Result<(u64, BitWriter<File>)> {
     let entries_length = entries.len() as u64;
     let output = try!(File::create(output_filename));
     let mut writer = BitWriter::new(output);
@@ -179,10 +179,15 @@ fn write_header(output_filename: &str, entries: &FileEntries) -> Result<BitWrite
         }
     }
 
-    Ok(writer)
+    let header_length_bits = writer.position();
+    let result = (header_length_bits, writer);
+    Ok(result)
 }
 
-fn write_compressed_data(entries: &mut FileEntries, encoder: &mut Encoder) -> Result<()> {
+fn write_compressed_data(entries: &mut FileEntries,
+                         encoder: &mut Encoder,
+                         header_length_bits: u64)
+                         -> Result<()> {
     for entry in entries.iter() {
         let f = try!(File::open(entry.filename.clone()));
         try!(encoder.analyze(f));
@@ -191,7 +196,7 @@ fn write_compressed_data(entries: &mut FileEntries, encoder: &mut Encoder) -> Re
 
     for entry in entries.iter_mut() {
         let f = try!(File::open(entry.filename.clone()));
-        entry.offset_bits = encoder.position();
+        entry.offset_bits = encoder.position() + header_length_bits;
         try!(encoder.compress(f));
     }
 
