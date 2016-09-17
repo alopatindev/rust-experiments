@@ -20,6 +20,7 @@ Contents
 * bin/archiver.rs
 * bin/head.rs
 * bin/hello.rs
+* bin/pngscale.rs
 * bin/tail.rs
 * bin/wc.rs
 * bin/wget.rs
