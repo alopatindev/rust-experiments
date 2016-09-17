@@ -252,7 +252,7 @@ impl<W: Write> HuffmanEncoder<W> {
 impl<W: Write> Drop for HuffmanEncoder<W> {
     fn drop(&mut self) {
         if self.state == State::Analyzed {
-            self.compress_finish().unwrap();
+            let _ = self.compress_finish();
         }
     }
 }

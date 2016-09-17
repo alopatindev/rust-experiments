@@ -91,7 +91,7 @@ impl<W: Write> BitWriter<W> {
 
 impl<T: Write> Drop for BitWriter<T> {
     fn drop(&mut self) {
-        self.flush().unwrap();
+        let _ = self.flush();
     }
 }
 
