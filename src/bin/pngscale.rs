@@ -36,7 +36,7 @@ impl RgbImage {
     }
 
     pub fn put_pixel(&mut self, x: usize, y: usize, color: RgbColor) {
-        let index = (x + y * self.height) * CHANNELS;
+        let index = (x + y * self.width) * CHANNELS;
         for i in 0..CHANNELS {
             self.buffer[index + i] = color[i];
         }
@@ -44,7 +44,7 @@ impl RgbImage {
 
     pub fn get_pixel(&self, x: usize, y: usize) -> RgbColor {
         let mut color = [0; CHANNELS];
-        let index = (x + y * self.height) * CHANNELS;
+        let index = (x + y * self.width) * CHANNELS;
         for i in 0..CHANNELS {
             color[i] = self.buffer[index + i];
         }
