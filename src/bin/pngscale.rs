@@ -10,8 +10,66 @@ use std::io::{Error, ErrorKind, Result};
 const DEFAULT_FACTOR: u32 = 4;
 const CHANNELS: usize = 3;
 
-type RgbImage = Vec<u8>;
-type RgbColor = [u8; CHANNELS];
+pub type RgbColor = [u8; CHANNELS];
+
+struct RgbImage {
+    buffer: Vec<u8>,
+    width: usize,
+    height: usize,
+}
+
+impl RgbImage {
+    pub fn new(width: usize, height: usize) -> Self {
+        RgbImage {
+            buffer: vec![0; width * height * CHANNELS],
+            width: width,
+            height: height,
+        }
+    }
+
+    pub fn with_buffer(buffer: Vec<u8>, width: usize, height: usize) -> Self {
+        RgbImage {
+            buffer: buffer,
+            width: width,
+            height: height,
+        }
+    }
+
+    pub fn put_pixel(&mut self, x: usize, y: usize, color: RgbColor) {
+        let index = (x + y * self.height) * CHANNELS;
+        for i in 0..CHANNELS {
+            self.buffer[index + i] = color[i];
+        }
+    }
+
+    pub fn get_pixel(&self, x: usize, y: usize) -> RgbColor {
+        let mut color = [0; CHANNELS];
+        let index = (x + y * self.height) * CHANNELS;
+        for i in 0..CHANNELS {
+            color[i] = self.buffer[index + i];
+        }
+        color
+    }
+
+    pub fn scale_nearest_neighbor(&self, factor: usize) -> Result<RgbImage> {
+        let mut output = RgbImage::new(self.width * factor, self.height * factor);
+
+        for x in 0..self.width {
+            for y in 0..self.height {
+                let color = self.get_pixel(x, y);
+                for x_offset in 0..factor {
+                    for y_offset in 0..factor {
+                        let out_x = x * factor + x_offset;
+                        let out_y = y * factor + y_offset;
+                        output.put_pixel(out_x, out_y, color);
+                    }
+                }
+            }
+        }
+
+        Ok(output)
+    }
+}
 
 fn main() {
     let matches = App::new("PNG Scale")
@@ -35,21 +93,26 @@ fn main() {
 }
 
 fn do_checked_main(input_filename: String, output_filename: String, factor: u32) -> Result<()> {
-    let factor = factor as usize;
-    let data = image::open(input_filename).unwrap();
+    let data = match image::open(input_filename) {
+        Ok(data) => data,
+        Err(e) => {
+            let e = Error::new(ErrorKind::Other, format!("{:?}", e));
+            return Err(e);
+        }
+    };
+
     match data {
-        DynamicImage::ImageRgb8(rgb_image) => {
-            let (width, height) = rgb_image.dimensions();
+        DynamicImage::ImageRgb8(image_data) => {
+            let (width, height) = image_data.dimensions();
             let width = width as usize;
             let height = height as usize;
-
-            let input_image = rgb_image.into_vec();
-            let (output_image, scaled_width, scaled_height) =
-                try!(scale_nearest_neighbor(input_image, width, height, factor));
+            let factor = factor as usize;
+            let input_image = RgbImage::with_buffer(image_data.into_vec(), width, height);
+            let output_image = try!(input_image.scale_nearest_neighbor(factor));
             try!(image::save_buffer(output_filename,
-                                    &output_image[..],
-                                    scaled_width as u32,
-                                    scaled_height as u32,
+                                    output_image.buffer.as_slice(),
+                                    output_image.width as u32,
+                                    output_image.height as u32,
                                     image::ColorType::RGB(8)));
         }
         _ => {
@@ -60,52 +123,4 @@ fn do_checked_main(input_filename: String, output_filename: String, factor: u32)
     }
 
     Ok(())
-}
-
-fn scale_nearest_neighbor(image: RgbImage,
-                          width: usize,
-                          height: usize,
-                          factor: usize)
-                          -> Result<(RgbImage, usize, usize)> {
-    let scaled_width = width * factor;
-    let scaled_height = height * factor;
-    let mut output = vec![0; scaled_width * scaled_height * CHANNELS];
-    for x in 0..width {
-        for y in 0..height {
-            let color = get_pixel(x, y, &image, width, height);
-            for x_offset in 0..factor {
-                for y_offset in 0..factor {
-                    put_pixel(x * factor + x_offset,
-                              y * factor + y_offset,
-                              color,
-                              &mut output,
-                              scaled_width,
-                              scaled_height);
-                }
-            }
-        }
-    }
-
-    Ok((output, scaled_width, scaled_height))
-}
-
-fn put_pixel(x: usize,
-             y: usize,
-             color: RgbColor,
-             image: &mut RgbImage,
-             width: usize,
-             height: usize) {
-    let index = (x + y * height) * CHANNELS;
-    for i in 0..CHANNELS {
-        image[index + i] = color[i];
-    }
-}
-
-fn get_pixel(x: usize, y: usize, image: &RgbImage, width: usize, height: usize) -> RgbColor {
-    let mut color = [0; CHANNELS];
-    let index = (x + y * height) * CHANNELS;
-    for i in 0..CHANNELS {
-        color[i] = image[index + i];
-    }
-    color
 }
