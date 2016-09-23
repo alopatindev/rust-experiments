@@ -7,7 +7,7 @@ extern crate nalgebra;
 
 use clap::App;
 use image::DynamicImage;
-use nalgebra::{Dot, Vector4};
+use nalgebra::{Dot, Vector3 as Vec3, Vector4 as Vec4};
 use std::io::{Error, ErrorKind, Result};
 
 const DEFAULT_FACTOR: u32 = 4;
@@ -19,6 +19,12 @@ struct RgbImage {
     buffer: Vec<u8>,
     width: usize,
     height: usize,
+}
+
+struct YCbCr {
+    y: f64,
+    cb: f64,
+    cr: f64,
 }
 
 impl RgbImage {
@@ -86,15 +92,15 @@ impl RgbImage {
             let area21 = (x2 - x) * (y - y1);
             let area12 = (x - x1) * (y2 - y);
             let area22 = (x2 - x) * (y2 - y);
-            let areas = Vector4::new(area11, area21, area12, area22);
+            let areas = Vec4::new(area11, area21, area12, area22);
 
             let mut new_color: RgbColor = [0; CHANNELS];
             for channel in 0..CHANNELS {
                 // swaped colors, see https://tinyurl.com/hq3dedl
-                let q_channel = Vector4::new(qs[3][channel] as usize,
-                                             qs[2][channel] as usize,
-                                             qs[1][channel] as usize,
-                                             qs[0][channel] as usize);
+                let q_channel = Vec4::new(qs[3][channel] as usize,
+                                          qs[2][channel] as usize,
+                                          qs[1][channel] as usize,
+                                          qs[0][channel] as usize);
                 let new_channel = q_channel.dot(&areas) / full_area;
                 new_color[channel] = new_channel as u8;
             }
@@ -154,14 +160,59 @@ impl RgbImage {
 
         Ok(output)
     }
+
+    pub fn grayscale(&self) -> Result<RgbImage> {
+        let mut output = RgbImage::new(self.width, self.height);
+
+        for y in 0..output.height {
+            for x in 0..output.width {
+                let color = self.get_pixel(x, y);
+                let luma = RgbImage::to_ycbcr(&color).y as u8;
+                let gray_color = [luma; CHANNELS];
+                output.put_pixel(x, y, gray_color);
+            }
+        }
+
+        Ok(output)
+    }
+
+    // see https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
+
+    fn to_ycbcr(color: &RgbColor) -> YCbCr {
+        let offset = Vec3::new(0.0, 128.0, 128.0);
+        let y_factors = Vec3::new(0.299, 0.587, 0.114);
+        let cb_factors = Vec3::new(-0.168736, -0.331264, 0.5);
+        let cr_factors = Vec3::new(0.5, -0.418688, -0.081312);
+
+        let rgb = Vec3::new(color[0] as f64, color[1] as f64, color[2] as f64);
+        let result = Vec3::new(y_factors.dot(&rgb),
+                               cb_factors.dot(&rgb),
+                               cr_factors.dot(&rgb));
+        let result = result + offset;
+
+        YCbCr {
+            y: result.x,
+            cb: result.y,
+            cr: result.z,
+        }
+    }
+
+    fn to_rgb(color: &YCbCr) -> RgbColor {
+        let aligned_cr = color.cr - 128.0;
+        let aligned_cb = color.cb - 128.0;
+        let r = color.y + 1.402 * aligned_cr;
+        let g = color.y - 0.344136 * aligned_cb - 0.714136 * aligned_cr;
+        let b = color.y + 1.772 * aligned_cb;
+        [r as u8, g as u8, b as u8]
+    }
 }
 
 fn main() {
-    let matches = App::new("PNG Scale")
-        .args_from_usage("-i <input.png> 'Filename to scale'
-                          -o <scaled.png> 'Output filename'
-                          -f <number> 'Scaling factor'
-                          -a <nearest|bilinear> 'Scaling algorithm'")
+    let matches = App::new("PNG Convert")
+        .args_from_usage("-i <input.png> 'Filename to convert'
+                          -o <output.png> 'Output filename'
+                          [-f <number>] 'Scaling factor'
+                          -a <nearest|bilinear|grayscale> 'Conversion algorithm'")
         .get_matches();
 
     let algorithm = value_t_or_exit!(matches, "a", String);
@@ -202,6 +253,7 @@ fn do_checked_main(input_filename: String,
             let output_image = match algorithm {
                 "nearest" => try!(input_image.scale_nearest_neighbor(factor)),
                 "bilinear" => try!(input_image.scale_bilinear(factor)),
+                "grayscale" => try!(input_image.grayscale()),
                 _ => unreachable!(),
             };
             image::save_buffer(output_filename,
