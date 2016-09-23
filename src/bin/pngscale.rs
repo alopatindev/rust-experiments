@@ -139,14 +139,18 @@ impl RgbImage {
                     let y2 = output.height;
                     interpolate_bucket(&mut output, x1, y1, x2, y2, &qs);
                 }
+
+                if is_right_edge && is_bottom_edge {
+                    let q22 = self.get_pixel(self.width - 1, self.height - 1);
+                    let qs = [q22, q22, q22, q22];
+                    let x1 = x2;
+                    let y1 = y2;
+                    let x2 = output.width;
+                    let y2 = output.height;
+                    interpolate_bucket(&mut output, x1, y1, x2, y2, &qs);
+                }
             }
         }
-
-        // right bottom corner
-        let color = self.get_pixel(self.width - 1, self.height - 1);
-        let x = output.width - 1;
-        let y = output.height - 1;
-        output.put_pixel(x, y, color);
 
         Ok(output)
     }
