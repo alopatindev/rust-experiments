@@ -3,14 +3,17 @@ extern crate clap;
 
 extern crate image;
 
+extern crate nalgebra;
+
 use clap::App;
 use image::DynamicImage;
+use nalgebra::{Dot, Vector4};
 use std::io::{Error, ErrorKind, Result};
 
 const DEFAULT_FACTOR: u32 = 4;
 const CHANNELS: usize = 3;
 
-pub type RgbColor = [u8; CHANNELS];
+type RgbColor = [u8; CHANNELS];
 
 struct RgbImage {
     buffer: Vec<u8>,
@@ -76,32 +79,35 @@ impl RgbImage {
         let bucket_width = output.width / (self.width - 1);
         let bucket_height = output.height / (self.height - 1);
 
-        let compute_color =
-            |x, y, x1, y1, x2, y2, q11: RgbColor, q21: RgbColor, q12: RgbColor, q22: RgbColor| {
-                let area11 = (x - x1) * (y - y1);
-                let area21 = (x2 - x) * (y - y1);
-                let area12 = (x - x1) * (y2 - y);
-                let area22 = (x2 - x) * (y2 - y);
-                let area = (x2 - x1) * (y2 - y1);
+        let compute_color = |x, y, x1, y1, x2, y2, qs: &[RgbColor]| {
+            let full_area = (x2 - x1) * (y2 - y1);
 
-                let mut q: RgbColor = [0; CHANNELS];
-                for i in 0..CHANNELS {
-                    // swaped colors
-                    let q11_channel = q22[i] as usize;
-                    let q21_channel = q12[i] as usize;
-                    let q12_channel = q21[i] as usize;
-                    let q22_channel = q11[i] as usize;
-                    let q_channel =
-                        (q11_channel * area11 + q21_channel * area21 + q12_channel * area12 +
-                         q22_channel * area22) / area;
-                    q[i] = q_channel as u8;
+            let area11 = (x - x1) * (y - y1);
+            let area21 = (x2 - x) * (y - y1);
+            let area12 = (x - x1) * (y2 - y);
+            let area22 = (x2 - x) * (y2 - y);
+            let areas = Vector4::new(area11, area21, area12, area22);
+
+            let mut new_color: RgbColor = [0; CHANNELS];
+            for channel in 0..CHANNELS {
+                // swaped colors, see https://tinyurl.com/hq3dedl
+                let q_channel = Vector4::new(qs[3][channel] as usize,
+                                             qs[2][channel] as usize,
+                                             qs[1][channel] as usize,
+                                             qs[0][channel] as usize);
+                let new_channel = q_channel.dot(&areas) / full_area;
+                new_color[channel] = new_channel as u8;
+            }
+
+            new_color
+        };
+
+        let interpolate_bucket = |output: &mut RgbImage, x1, y1, x2, y2, qs: &[RgbColor]| {
+            for y in y1..y2 {
+                for x in x1..x2 {
+                    let new_color = compute_color(x, y, x1, y1, x2, y2, qs);
+                    output.put_pixel(x, y, new_color);
                 }
-                q
-            };
-
-        let safe_put_pixel = |output: &mut Self, x, y, color| {
-            if x < output.width && y < output.height {
-                output.put_pixel(x, y, color);
             }
         };
 
@@ -111,48 +117,27 @@ impl RgbImage {
                 let q21 = self.get_pixel(x0 + 1, y0);
                 let q12 = self.get_pixel(x0, y0 + 1);
                 let q22 = self.get_pixel(x0 + 1, y0 + 1);
+                let qs = [q11, q21, q12, q22];
                 let x1 = x0 * bucket_width;
                 let y1 = y0 * bucket_height;
                 let x2 = (x0 + 1) * bucket_width;
                 let y2 = (y0 + 1) * bucket_height;
-
-                for y in y1..y2 {
-                    for x in x1..x2 {
-                        let q = compute_color(x, y, x1, y1, x2, y2, q11, q21, q12, q22);
-                        output.put_pixel(x, y, q);
-                    }
-                }
+                interpolate_bucket(&mut output, x1, y1, x2, y2, &qs);
 
                 let is_right_edge = x0 == self.width - 2;
                 if is_right_edge {
-                    let q11 = q21;
-                    let q21 = q22;
-                    let q12 = q21;
-                    let q22 = q22;
+                    let qs = [q21, q22, q22, q22];
                     let x1 = x2;
                     let x2 = output.width;
-                    for y in y1..y2 {
-                        for x in x1..x2 {
-                            let q = compute_color(x, y, x1, y1, x2, y2, q11, q21, q12, q22);
-                            safe_put_pixel(&mut output, x, y, q);
-                        }
-                    }
+                    interpolate_bucket(&mut output, x1, y1, x2, y2, &qs);
                 }
 
                 let is_bottom_edge = y0 == self.height - 2;
                 if is_bottom_edge {
-                    let q11 = q12;
-                    let q21 = q22;
-                    let q12 = q12;
-                    let q22 = q22;
+                    let qs = [q12, q22, q12, q22];
                     let y1 = y2;
                     let y2 = output.height;
-                    for y in y1..y2 {
-                        for x in x1..x2 {
-                            let q = compute_color(x, y, x1, y1, x2, y2, q11, q21, q12, q22);
-                            safe_put_pixel(&mut output, x, y, q);
-                        }
-                    }
+                    interpolate_bucket(&mut output, x1, y1, x2, y2, &qs);
                 }
             }
         }
@@ -161,7 +146,7 @@ impl RgbImage {
         let color = self.get_pixel(self.width - 1, self.height - 1);
         let x = output.width - 1;
         let y = output.height - 1;
-        safe_put_pixel(&mut output, x, y, color);
+        output.put_pixel(x, y, color);
 
         Ok(output)
     }
