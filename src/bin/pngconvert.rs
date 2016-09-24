@@ -5,10 +5,17 @@ extern crate image;
 
 extern crate nalgebra;
 
+extern crate rust_experiments;
+
 use clap::App;
 use image::DynamicImage;
 use nalgebra::{Dot, Vector3 as Vec3, Vector4 as Vec4};
-use std::io::{Error, ErrorKind, Result};
+use rust_experiments::encoding::bitreader::BitReader;
+use rust_experiments::encoding::bitwriter::BitWriter;
+use rust_experiments::encoding::huffman::{HuffmanEncoder, HuffmanDecoder};
+use std::fs::File;
+use std::io::{Cursor, Error, ErrorKind, Result};
+use std::mem;
 
 const DEFAULT_FACTOR: u32 = 4;
 const CHANNELS: usize = 3;
@@ -25,6 +32,28 @@ struct YCbCr {
     y: f64,
     cb: f64,
     cr: f64,
+}
+
+const EPS: f64 = 1e-16;
+
+trait ToFixed {
+    fn to_fixed_point(&self) -> u64;
+}
+
+trait FromFixed {
+    fn fixed_to_f64(&self) -> f64;
+}
+
+impl ToFixed for f64 {
+    fn to_fixed_point(&self) -> u64 {
+        (self / EPS) as u64
+    }
+}
+
+impl FromFixed for u64 {
+    fn fixed_to_f64(&self) -> f64 {
+        *self as f64 * EPS
+    }
 }
 
 impl RgbImage {
@@ -176,6 +205,84 @@ impl RgbImage {
         Ok(output)
     }
 
+    pub fn compress(&self, output_filename: &str) -> Result<()> {
+        let n = self.width * self.height;
+        let width = self.width as u64;
+        let height = self.height as u64;
+
+        let pixels_length = (n * 3) * mem::size_of::<u64>();
+        let mut writer = BitWriter::new(Vec::with_capacity(pixels_length));
+
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let color = self.get_pixel(x, y);
+                let yy = RgbImage::to_ycbcr(&color).y.to_fixed_point();
+                let cb = RgbImage::to_ycbcr(&color).cb.to_fixed_point();
+                let cr = RgbImage::to_ycbcr(&color).cr.to_fixed_point();
+                try!(writer.write_u64(yy));
+                try!(writer.write_u64(cb));
+                try!(writer.write_u64(cr));
+            }
+        }
+        try!(writer.flush());
+
+        let f = try!(File::create(output_filename));
+        let mut header_writer = BitWriter::new(f);
+        try!(header_writer.write_u64(width));
+        try!(header_writer.write_u64(height));
+
+        let mut coder = HuffmanEncoder::new(header_writer.get_mut());
+        let data = writer.get_ref().as_slice();
+        let reader = Cursor::new(data);
+        try!(coder.analyze(reader.clone()));
+        try!(coder.analyze_finish());
+        try!(coder.compress(reader));
+        try!(coder.compress_finish());
+
+        Ok(())
+    }
+
+    pub fn decompress(input_filename: &str, output_filename: &str) -> Result<()> {
+        let f = try!(File::open(input_filename));
+        let mut reader = BitReader::new(f);
+        let width = try!(reader.read_u64()) as usize;
+        let height = try!(reader.read_u64()) as usize;
+        let n = width * height;
+        let pixels_length = (n * 3) * mem::size_of::<u64>();
+        let pixels_length_bits = pixels_length as u64 * 8;
+        let mut pixels_writer = Vec::with_capacity(pixels_length);
+
+        let mut coder = try!(HuffmanDecoder::new(reader.get_mut()));
+        try!(coder.decode(&mut pixels_writer, 0, pixels_length_bits)); // FIXME
+        let mut reader = BitReader::new(pixels_writer.as_slice());
+
+        // pixels to rgb
+
+        let mut output = RgbImage::new(width, height);
+        for y in 0..height {
+            for x in 0..width {
+                let yy = try!(reader.read_u64()).fixed_to_f64();
+                let cb = try!(reader.read_u64()).fixed_to_f64();
+                let cr = try!(reader.read_u64()).fixed_to_f64();
+                let compressed = YCbCr {
+                    y: yy,
+                    cb: cb,
+                    cr: cr,
+                };
+                let new_pixel = RgbImage::to_rgb(&compressed);
+                output.put_pixel(x, y, new_pixel);
+            }
+        }
+
+        try!(image::save_buffer(output_filename,
+                                output.buffer.as_slice(),
+                                output.width as u32,
+                                output.height as u32,
+                                image::ColorType::RGB(8)));
+
+        Ok(())
+    }
+
     // see https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
 
     fn to_ycbcr(color: &RgbColor) -> YCbCr {
@@ -208,11 +315,12 @@ impl RgbImage {
 }
 
 fn main() {
+    let usage = "-i <input.png> 'Filename to convert'
+                -o <output.png> 'Output filename'
+                [-f <number>] 'Scaling factor'
+                -a <nearest|bilinear|grayscale|compress|decompress> 'Conversion algorithm'";
     let matches = App::new("PNG Convert")
-        .args_from_usage("-i <input.png> 'Filename to convert'
-                          -o <output.png> 'Output filename'
-                          [-f <number>] 'Scaling factor'
-                          -a <nearest|bilinear|grayscale> 'Conversion algorithm'")
+        .args_from_usage(usage)
         .get_matches();
 
     let algorithm = value_t_or_exit!(matches, "a", String);
@@ -235,37 +343,47 @@ fn do_checked_main(input_filename: String,
                    factor: u32,
                    algorithm: &str)
                    -> Result<()> {
-    let data = match image::open(input_filename) {
-        Ok(data) => data,
-        Err(e) => {
-            let e = Error::new(ErrorKind::Other, format!("{:?}", e));
-            return Err(e);
-        }
-    };
+    // FIXME: refactor
+    if algorithm == "decompress" {
+        return RgbImage::decompress(input_filename.as_str(), output_filename.as_str());
+    } else {
+        let data = match image::open(input_filename) {
+            Ok(data) => data,
+            Err(e) => {
+                let e = Error::new(ErrorKind::Other, format!("{:?}", e));
+                return Err(e);
+            }
+        };
 
-    match data {
-        DynamicImage::ImageRgb8(image_data) => {
-            let (width, height) = image_data.dimensions();
-            let width = width as usize;
-            let height = height as usize;
-            let factor = factor as usize;
-            let input_image = RgbImage::with_buffer(image_data.into_vec(), width, height);
-            let output_image = match algorithm {
-                "nearest" => try!(input_image.scale_nearest_neighbor(factor)),
-                "bilinear" => try!(input_image.scale_bilinear(factor)),
-                "grayscale" => try!(input_image.grayscale()),
-                _ => unreachable!(),
-            };
-            image::save_buffer(output_filename,
-                               output_image.buffer.as_slice(),
-                               output_image.width as u32,
-                               output_image.height as u32,
-                               image::ColorType::RGB(8))
-        }
-        _ => {
-            let e = Error::new(ErrorKind::InvalidInput,
-                               "Error: unsupported image. Only RGB images are supported.");
-            Err(e)
+        match data {
+            DynamicImage::ImageRgb8(image_data) => {
+                let (width, height) = image_data.dimensions();
+                let width = width as usize;
+                let height = height as usize;
+                let factor = factor as usize;
+                let input_image = RgbImage::with_buffer(image_data.into_vec(), width, height);
+                match algorithm {
+                    "compress" => input_image.compress(output_filename.as_str()),
+                    _ => {
+                        let output_image = match algorithm {
+                            "nearest" => try!(input_image.scale_nearest_neighbor(factor)),
+                            "bilinear" => try!(input_image.scale_bilinear(factor)),
+                            "grayscale" => try!(input_image.grayscale()),
+                            _ => unreachable!(),
+                        };
+                        image::save_buffer(output_filename,
+                                           output_image.buffer.as_slice(),
+                                           output_image.width as u32,
+                                           output_image.height as u32,
+                                           image::ColorType::RGB(8))
+                    }
+                }
+            }
+            _ => {
+                let e = Error::new(ErrorKind::InvalidInput,
+                                   "Error: unsupported image. Only RGB images are supported.");
+                Err(e)
+            }
         }
     }
 }
