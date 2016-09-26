@@ -2,6 +2,7 @@ use encoding::bitreader::BitReader;
 use encoding::bitwriter::BitWriter;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::{Error, ErrorKind, Read, Result, Seek, Write};
+use std::mem;
 use structs::binary_tree::BinaryTree;
 use structs::bitset::BitSet;
 

@@ -1,6 +1,6 @@
 pub struct HuffmanDecoder<R: Read + Seek> {
     input: BitReader<R>,
-    code_to_char: HashMap<Code, u8>,
+    code_to_char: HashMap<Code, Char>,
 }
 
 impl<R: Read + Seek> HuffmanDecoder<R> {
@@ -58,12 +58,13 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
     }
 
     fn read_header(&mut self) -> Result<()> {
-        let dict_length = try!(self.input.read_u16()) as usize;
+        let dict_length: DictLength = try!(self.input.read_u16());
+        let dict_length = dict_length as usize;
         self.code_to_char.reserve(dict_length);
 
         for _ in 0..dict_length {
             let code_length = try!(self.input.read_u8());
-            let code_data = try!(self.input.read_u8());
+            let code_data = try!(self.input.read_u16());
             let ch = try!(self.input.read_u8());
             let code = Code {
                 length: code_length,
@@ -75,13 +76,15 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
         Ok(())
     }
 
-    fn read_char(&mut self) -> Option<u8> {
+    fn read_char(&mut self) -> Option<Char> {
         let mut code = Code {
             length: 0,
             data: 0,
         };
 
         while let Ok(data) = self.input.read_bit() {
+            assert!(code.length <= max_code_length());
+
             if data {
                 let shifted_one = 1 << code.length;
                 code.data |= shifted_one;

@@ -6,6 +6,7 @@ mod tests {
     use std::collections::HashSet;
     use std::io::{Cursor, Write};
     use super::*;
+    use super::{Char, max_possible_chars};
     use super::{NodeData, Tree};
 
     const INPUT_TEXT: &'static str = "mississippi river";
@@ -32,7 +33,9 @@ mod tests {
 
     #[test]
     fn full_alphabet() {
-        let mut input = (0..256).map(|x| x as u8).collect::<Vec<u8>>();
+        let mut input = (0..max_possible_chars())
+            .map(|x| x as Char)
+            .collect::<Vec<Char>>();
         for _ in 0..5 {
             let mut clone = input.clone();
             input.append(&mut clone);

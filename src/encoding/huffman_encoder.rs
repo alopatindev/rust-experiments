@@ -1,9 +1,15 @@
 pub struct HuffmanEncoder<W: Write> {
     state: State,
     output: BitWriter<W>,
-    char_to_code: HashMap<u8, Code>,
-    char_to_weight: HashMap<u8, u64>,
+    char_to_code: HashMap<Char, Code>,
+    char_to_weight: HashMap<Char, u64>,
 }
+
+type Char = u8;
+type DictLength = u16;
+
+type CodeLength = u8;
+type CodeData = u16;
 
 #[derive(PartialEq, Debug)]
 enum State {
@@ -14,7 +20,7 @@ enum State {
 
 #[derive(Clone, PartialEq, Debug)]
 struct NodeData {
-    chars: HashSet<u8>,
+    chars: HashSet<Char>,
     weight: u64,
 }
 
@@ -22,8 +28,17 @@ type Tree = BinaryTree<NodeData>;
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 struct Code {
-    length: u8,
-    data: u8,
+    length: CodeLength,
+    data: CodeData,
+}
+
+fn max_possible_chars() -> usize {
+    1 << (mem::size_of::<Char>() * 8)
+}
+
+fn max_code_length() -> CodeLength {
+    let size_bits = mem::size_of::<CodeData>() * 8;
+    size_bits as CodeLength - 1
 }
 
 impl<W: Write> HuffmanEncoder<W> {
@@ -31,8 +46,8 @@ impl<W: Write> HuffmanEncoder<W> {
         HuffmanEncoder {
             state: State::Initial,
             output: BitWriter::new(output),
-            char_to_code: HashMap::with_capacity(256),
-            char_to_weight: HashMap::with_capacity(256),
+            char_to_code: HashMap::with_capacity(max_possible_chars()),
+            char_to_weight: HashMap::with_capacity(max_possible_chars()),
         }
     }
 
@@ -74,6 +89,7 @@ impl<W: Write> HuffmanEncoder<W> {
         while let Ok(buffer) = input.read_u8() {
             let code = self.char_to_code.get(&buffer).unwrap();
 
+            assert!(code.length <= max_code_length());
             for i in 0..code.length {
                 let shifted_one = 1 << i;
                 let data = (code.data & shifted_one) > 0;
@@ -183,7 +199,7 @@ impl<W: Write> HuffmanEncoder<W> {
         let left_chars = &left.data().unwrap().chars;
         let right_chars = &right.data().unwrap().chars;
 
-        let chars = left_chars.union(right_chars).cloned().collect::<HashSet<u8>>();
+        let chars = left_chars.union(right_chars).cloned().collect::<HashSet<Char>>();
         let weight = left.data().unwrap().weight + right.data().unwrap().weight;
 
         let data = NodeData {
@@ -202,20 +218,20 @@ impl<W: Write> HuffmanEncoder<W> {
             }
         }
 
-        assert!(self.char_to_code.len() <= 256);
+        assert!(self.char_to_code.len() <= max_possible_chars());
     }
 
-    fn compute_code(&self, ch: u8, tree: &Tree) -> Code {
+    fn compute_code(&self, ch: Char, tree: &Tree) -> Code {
         let mut tree = tree.clone();
         let mut code = BitSet::new();
-        let mut length = 0;
+        let mut length: CodeLength = 0;
 
         loop {
             if tree.left_data().is_some() && tree.left_data().unwrap().chars.contains(&ch) {
                 tree = tree.left();
             } else if tree.right_data().is_some() &&
                       tree.right_data().unwrap().chars.contains(&ch) {
-                code.insert(length);
+                code.insert(length as usize);
                 tree = tree.right();
             } else {
                 break;
@@ -229,19 +245,24 @@ impl<W: Write> HuffmanEncoder<W> {
             length = 1; // FIXME
         }
 
+        assert!(length > 0);
+        assert!(length <= max_code_length());
+
+        let data = code.as_slice()[0] as CodeData;
+
         Code {
-            length: length as u8,
-            data: code.as_slice()[0] as u8,
+            length: length,
+            data: data,
         }
     }
 
     fn write_header(&mut self) -> Result<()> {
-        let dict_length = self.char_to_code.len() as u16;
+        let dict_length = self.char_to_code.len() as DictLength;
         try!(self.output.write_u16(dict_length));
 
         for (&ch, code) in &self.char_to_code {
             try!(self.output.write_u8(code.length));
-            try!(self.output.write_u8(code.data));
+            try!(self.output.write_u16(code.data));
             try!(self.output.write_u8(ch));
         }
 
