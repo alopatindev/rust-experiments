@@ -36,11 +36,11 @@ struct YCbCr {
     cr: f64,
 }
 
-const FLOAT_OFFSET: f64 = 1e-5;
-const FIXED_OFFSET: u64 = 10_000;
+const FLOAT_OFFSET: f64 = 1e-6;
+const FIXED_OFFSET: u64 = 1_000;
 
 trait ToFixed {
-    fn to_fixed(&self) -> u64;
+    fn to_fixed(&self) -> u32;
 }
 
 trait FromFixed {
@@ -48,15 +48,16 @@ trait FromFixed {
 }
 
 impl ToFixed for f64 {
-    fn to_fixed(&self) -> u64 {
+    fn to_fixed(&self) -> u32 {
         let result = (self / FLOAT_OFFSET) as u64;
-        result / FIXED_OFFSET
+        let result = result / FIXED_OFFSET;
+        result as u32
     }
 }
 
-impl FromFixed for u64 {
+impl FromFixed for u32 {
     fn fixed_to_f64(&self) -> f64 {
-        let result = *self * FIXED_OFFSET;
+        let result = *self as u64 * FIXED_OFFSET;
         result as f64 * FLOAT_OFFSET
     }
 }
@@ -228,15 +229,15 @@ impl RgbImage {
         let mut writer = BitWriter::new(Vec::with_capacity(n * YCBCR_CHANNELS));
 
         for &y in &y_vec[..] {
-            try!(writer.write_u64(y));
+            try!(writer.write_u32(y));
         }
 
         for &cb in &cb_vec[..] {
-            try!(writer.write_u64(cb));
+            try!(writer.write_u32(cb));
         }
 
         for &cr in &cr_vec[..] {
-            try!(writer.write_u64(cr));
+            try!(writer.write_u32(cr));
         }
 
         try!(writer.flush());
@@ -265,7 +266,7 @@ impl RgbImage {
         let width = try!(reader.read_u64()) as usize;
         let height = try!(reader.read_u64()) as usize;
         let n = width * height;
-        let pixels_length = (n * YCBCR_CHANNELS) * mem::size_of::<u64>();
+        let pixels_length = (n * YCBCR_CHANNELS) * mem::size_of::<u32>();
         let pixels_length_bits = pixels_length as u64 * 8;
         let mut pixels_writer = Vec::with_capacity(pixels_length);
 
@@ -279,15 +280,18 @@ impl RgbImage {
         let mut cr_vec = Vec::with_capacity(n);
 
         for _ in 0..n {
-            y_vec.push(try!(reader.read_u64()).fixed_to_f64());
+            let value = try!(reader.read_u32()).fixed_to_f64();
+            y_vec.push(value);
         }
 
         for _ in 0..n {
-            cb_vec.push(try!(reader.read_u64()).fixed_to_f64());
+            let value = try!(reader.read_u32()).fixed_to_f64();
+            cb_vec.push(value);
         }
 
         for _ in 0..n {
-            cr_vec.push(try!(reader.read_u64()).fixed_to_f64());
+            let value = try!(reader.read_u32()).fixed_to_f64();
+            cr_vec.push(value);
         }
 
         // pixels to rgb
