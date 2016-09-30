@@ -195,6 +195,7 @@ fn write_compressed_data(entries: &mut FileEntries,
     try!(encoder.analyze_finish());
 
     for entry in entries.iter_mut() {
+        println!("compressing {}", entry.filename);
         let f = try!(File::open(entry.filename.clone()));
         entry.offset_bits = encoder.position() + header_length_bits;
         try!(encoder.compress(f));
