@@ -54,7 +54,7 @@ impl<R: Read> BitReader<R> {
     }
 
     pub fn read_u16(&mut self) -> Result<u16> {
-        let mut data = Vec::with_capacity(8);
+        let mut data = Vec::with_capacity(2);
         let mut rollback_queue = VecDeque::with_capacity(16);
 
         for _ in 0..2 {
