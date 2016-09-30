@@ -25,21 +25,21 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
                   offset_bit: u64,
                   original_length_bits: u64)
                   -> Result<u64> {
-        let mut read_bytes = 0;
+        let mut read_chars = 0;
 
         if original_length_bits == 0 {
-            return Ok(read_bytes);
+            return Ok(read_chars);
         }
 
         let original_length_bytes = original_length_bits / 8;
 
         try!(self.input.set_position(offset_bit));
 
-        while read_bytes < original_length_bytes {
+        while read_chars < original_length_bytes {
             match self.read_char() {
                 Some(ch) => {
                     try!(output.write_all(&[ch]));
-                    read_bytes += 1;
+                    read_chars += 1;
                 }
                 None => unreachable!(),
             }
@@ -47,7 +47,7 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
 
         try!(output.flush());
 
-        let read_bits = read_bytes * 8;
+        let read_bits = read_chars * mem::size_of::<Char>() as u64 * 8;
         Ok(read_bits)
     }
 
@@ -104,6 +104,12 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
                 return Some(ch);
             }
         }
+
+        println!("Error: couldn't read character length={} of {}; code={:b}; dict len={}",
+                 code.length,
+                 max_code_length(),
+                 code.data,
+                 self.code_to_char.len());
 
         None
     }

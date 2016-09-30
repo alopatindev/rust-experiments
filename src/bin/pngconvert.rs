@@ -36,10 +36,11 @@ struct YCbCr {
     cr: f64,
 }
 
-const EPS: f64 = 1e-16;
+const FLOAT_OFFSET: f64 = 1e-5;
+const FIXED_OFFSET: u64 = 10_000;
 
 trait ToFixed {
-    fn to_fixed_point(&self) -> u64;
+    fn to_fixed(&self) -> u64;
 }
 
 trait FromFixed {
@@ -47,14 +48,16 @@ trait FromFixed {
 }
 
 impl ToFixed for f64 {
-    fn to_fixed_point(&self) -> u64 {
-        (self / EPS) as u64
+    fn to_fixed(&self) -> u64 {
+        let result = (self / FLOAT_OFFSET) as u64;
+        result / FIXED_OFFSET
     }
 }
 
 impl FromFixed for u64 {
     fn fixed_to_f64(&self) -> f64 {
-        *self as f64 * EPS
+        let result = *self * FIXED_OFFSET;
+        result as f64 * FLOAT_OFFSET
     }
 }
 
@@ -208,26 +211,38 @@ impl RgbImage {
     }
 
     pub fn compress(&self, output_filename: &str) -> Result<()> {
-        let width = self.width as u64;
-        let height = self.height as u64;
-        let n = width * height;
+        let n = self.width * self.height;
 
-        let pixels_length = (n as usize * YCBCR_CHANNELS) * mem::size_of::<u64>();
-        let mut writer = BitWriter::new(Vec::with_capacity(pixels_length));
-
+        let mut y_vec = Vec::with_capacity(n);
+        let mut cb_vec = Vec::with_capacity(n);
+        let mut cr_vec = Vec::with_capacity(n);
         for y in 0..self.height {
             for x in 0..self.width {
                 let color = self.get_pixel(x, y);
-                let yy = RgbImage::to_ycbcr(&color).y.to_fixed_point();
-                let cb = RgbImage::to_ycbcr(&color).cb.to_fixed_point();
-                let cr = RgbImage::to_ycbcr(&color).cr.to_fixed_point();
-                try!(writer.write_u64(yy));
-                try!(writer.write_u64(cb));
-                try!(writer.write_u64(cr));
+                y_vec.push(RgbImage::to_ycbcr(&color).y.to_fixed());
+                cb_vec.push(RgbImage::to_ycbcr(&color).cb.to_fixed());
+                cr_vec.push(RgbImage::to_ycbcr(&color).cr.to_fixed());
             }
         }
+
+        let mut writer = BitWriter::new(Vec::with_capacity(n * YCBCR_CHANNELS));
+
+        for &y in &y_vec[..] {
+            try!(writer.write_u64(y));
+        }
+
+        for &cb in &cb_vec[..] {
+            try!(writer.write_u64(cb));
+        }
+
+        for &cr in &cr_vec[..] {
+            try!(writer.write_u64(cr));
+        }
+
         try!(writer.flush());
 
+        let width = self.width as u64;
+        let height = self.height as u64;
         let f = try!(File::create(output_filename));
         let mut header_writer = BitWriter::new(f);
         try!(header_writer.write_u64(width));
@@ -250,7 +265,7 @@ impl RgbImage {
         let width = try!(reader.read_u64()) as usize;
         let height = try!(reader.read_u64()) as usize;
         let n = width * height;
-        let pixels_length = (n * 3) * mem::size_of::<u64>();
+        let pixels_length = (n * YCBCR_CHANNELS) * mem::size_of::<u64>();
         let pixels_length_bits = pixels_length as u64 * 8;
         let mut pixels_writer = Vec::with_capacity(pixels_length);
 
@@ -259,23 +274,38 @@ impl RgbImage {
         try!(coder.decode(&mut pixels_writer, data_offset_bit, pixels_length_bits));
         let mut reader = BitReader::new(pixels_writer.as_slice());
 
-        // pixels to rgb
+        let mut y_vec = Vec::with_capacity(n);
+        let mut cb_vec = Vec::with_capacity(n);
+        let mut cr_vec = Vec::with_capacity(n);
 
+        for _ in 0..n {
+            y_vec.push(try!(reader.read_u64()).fixed_to_f64());
+        }
+
+        for _ in 0..n {
+            cb_vec.push(try!(reader.read_u64()).fixed_to_f64());
+        }
+
+        for _ in 0..n {
+            cr_vec.push(try!(reader.read_u64()).fixed_to_f64());
+        }
+
+        // pixels to rgb
         let mut output = RgbImage::new(width, height);
+        let mut i = 0;
         for y in 0..height {
             for x in 0..width {
-                let yy = try!(reader.read_u64()).fixed_to_f64();
-                let cb = try!(reader.read_u64()).fixed_to_f64();
-                let cr = try!(reader.read_u64()).fixed_to_f64();
                 let compressed = YCbCr {
-                    y: yy,
-                    cb: cb,
-                    cr: cr,
+                    y: y_vec[i],
+                    cb: cb_vec[i],
+                    cr: cr_vec[i],
                 };
                 let new_pixel = RgbImage::to_rgb(&compressed);
                 output.put_pixel(x, y, new_pixel);
+                i += 1;
             }
         }
+
 
         try!(image::save_buffer(output_filename,
                                 output.buffer.as_slice(),
