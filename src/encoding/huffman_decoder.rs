@@ -1,6 +1,7 @@
 pub struct HuffmanDecoder<R: Read + Seek> {
     input: BitReader<R>,
     code_to_char: HashMap<Code, Char>,
+    data_offset_bit: u64,
 }
 
 impl<R: Read + Seek> HuffmanDecoder<R> {
@@ -8,6 +9,7 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
         let mut result = HuffmanDecoder {
             input: BitReader::new(input),
             code_to_char: HashMap::new(),
+            data_offset_bit: 0,
         };
 
         if result.read_header().is_err() {
@@ -49,6 +51,10 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
         Ok(read_bits)
     }
 
+    pub fn data_offset_bit(&self) -> u64 {
+        self.data_offset_bit
+    }
+
     pub fn get_input_mut(&mut self) -> &mut R {
         self.input.get_mut()
     }
@@ -72,6 +78,8 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
             };
             self.code_to_char.insert(code, ch);
         }
+
+        self.data_offset_bit = self.input.position();
 
         Ok(())
     }

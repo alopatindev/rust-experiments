@@ -19,6 +19,7 @@ use std::mem;
 
 const DEFAULT_FACTOR: u32 = 4;
 const CHANNELS: usize = 3;
+const YCBCR_CHANNELS: usize = 3;
 
 type RgbColor = [u8; CHANNELS];
 
@@ -206,11 +207,11 @@ impl RgbImage {
     }
 
     pub fn compress(&self, output_filename: &str) -> Result<()> {
-        let n = self.width * self.height;
         let width = self.width as u64;
         let height = self.height as u64;
+        let n = width * height;
 
-        let pixels_length = (n * 3) * mem::size_of::<u64>();
+        let pixels_length = (n as usize * YCBCR_CHANNELS) * mem::size_of::<u64>();
         let mut writer = BitWriter::new(Vec::with_capacity(pixels_length));
 
         for y in 0..self.height {
@@ -231,13 +232,13 @@ impl RgbImage {
         try!(header_writer.write_u64(width));
         try!(header_writer.write_u64(height));
 
-        let mut coder = HuffmanEncoder::new(header_writer.get_mut());
+        let mut encoder = HuffmanEncoder::new(header_writer.get_mut());
         let data = writer.get_ref().as_slice();
         let reader = Cursor::new(data);
-        try!(coder.analyze(reader.clone()));
-        try!(coder.analyze_finish());
-        try!(coder.compress(reader));
-        try!(coder.compress_finish());
+        try!(encoder.analyze(reader.clone()));
+        try!(encoder.analyze_finish());
+        try!(encoder.compress(reader));
+        try!(encoder.compress_finish());
 
         Ok(())
     }
@@ -252,8 +253,9 @@ impl RgbImage {
         let pixels_length_bits = pixels_length as u64 * 8;
         let mut pixels_writer = Vec::with_capacity(pixels_length);
 
-        let mut coder = try!(HuffmanDecoder::new(reader.get_mut()));
-        try!(coder.decode(&mut pixels_writer, 0, pixels_length_bits)); // FIXME
+        let mut coder = try!(HuffmanDecoder::new(reader.get_ref()));
+        let data_offset_bit = coder.data_offset_bit();
+        try!(coder.decode(&mut pixels_writer, data_offset_bit, pixels_length_bits));
         let mut reader = BitReader::new(pixels_writer.as_slice());
 
         // pixels to rgb
