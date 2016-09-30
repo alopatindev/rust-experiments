@@ -5,33 +5,6 @@ pub struct HuffmanEncoder<W: Write> {
     char_to_weight: HashMap<Char, u64>,
 }
 
-type Char = u8;
-type DictLength = u16;
-
-type CodeLength = u8;
-type CodeData = u16;
-
-#[derive(PartialEq, Debug)]
-enum State {
-    Initial,
-    Analyzed,
-    Compressed,
-}
-
-#[derive(Clone, PartialEq, Debug)]
-struct NodeData {
-    chars: HashSet<Char>,
-    weight: u64,
-}
-
-type Tree = BinaryTree<NodeData>;
-
-#[derive(PartialEq, Eq, Hash, Debug)]
-struct Code {
-    length: CodeLength,
-    data: CodeData,
-}
-
 fn max_possible_chars() -> usize {
     1 << (mem::size_of::<Char>() * 8)
 }
