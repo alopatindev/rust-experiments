@@ -68,6 +68,21 @@ impl<R: Read> BitReader<R> {
         cursor.read_u16::<BigEndian>()
     }
 
+    pub fn read_u32(&mut self) -> Result<u32> {
+        let mut data = Vec::with_capacity(4);
+        let mut rollback_queue = VecDeque::with_capacity(32);
+
+        for _ in 0..4 {
+            match self.read_u8_internal(&mut rollback_queue) {
+                Ok(byte) => data.push(byte),
+                Err(e) => return Err(e),
+            }
+        }
+
+        let mut cursor = Cursor::new(data);
+        cursor.read_u32::<BigEndian>()
+    }
+
     pub fn read_u64(&mut self) -> Result<u64> {
         let mut data = Vec::with_capacity(8);
         let mut rollback_queue = VecDeque::with_capacity(64);
@@ -226,6 +241,23 @@ mod tests {
 
                 for &expect in input_slice {
                     let data = reader.read_u16().unwrap();
+                    if expect != data {
+                        return false;
+                    }
+                }
+            }
+
+            true
+        }
+
+        fn random_u32s(xs: Vec<u32>) -> bool {
+            unsafe {
+                let input_slice = &xs[..];
+                let input_bytes = vec_to_u8_big_endian(input_slice);
+                let mut reader = BitReader::new(&input_bytes[..]);
+
+                for &expect in input_slice {
+                    let data = reader.read_u32().unwrap();
                     if expect != data {
                         return false;
                     }

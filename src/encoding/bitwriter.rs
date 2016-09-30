@@ -57,6 +57,16 @@ impl<W: Write> BitWriter<W> {
         Ok(())
     }
 
+    pub fn write_u32(&mut self, data: u32) -> Result<()> {
+        let mut buffer = [0; 4];
+        BigEndian::write_u32(&mut buffer, data);
+        for &i in &buffer {
+            try!(self.write_u8(i));
+        }
+
+        Ok(())
+    }
+
     pub fn write_u64(&mut self, data: u64) -> Result<()> {
         let mut buffer = [0; 8];
         BigEndian::write_u64(&mut buffer, data);
@@ -172,6 +182,28 @@ mod tests {
             }
 
             check_u16_data(&xs[..], &writer)
+        }
+
+        fn random_u32s(xs: Vec<u32>) -> bool {
+            let mut writer = new_writer(xs.len());
+            let mut bits_written = 0;
+
+            for &i in &xs {
+                writer.write_u32(i).unwrap();
+                bits_written += 32;
+            }
+
+            if bits_written != writer.position() {
+                return false;
+            }
+
+            writer.flush().unwrap();
+
+            if bits_written != writer.position() {
+                return false;
+            }
+
+            check_u32_data(&xs[..], &writer)
         }
 
         fn random_u64s(xs: Vec<u64>) -> bool {
@@ -309,6 +341,10 @@ mod tests {
         expect == get_u16_data(writer).as_slice()
     }
 
+    fn check_u32_data(expect: &[u32], writer: &MockWriter) -> bool {
+        expect == get_u32_data(writer).as_slice()
+    }
+
     fn check_u64_data(expect: &[u64], writer: &MockWriter) -> bool {
         expect == get_u64_data(writer).as_slice()
     }
@@ -335,6 +371,24 @@ mod tests {
             let data = &cursor.get_ref()[i..(i + bytes_per_item)];
             let mut cursor = Cursor::new(data);
             let item = cursor.read_u16::<BigEndian>().unwrap();
+            result.push(item);
+            i += bytes_per_item;
+        }
+
+        result
+    }
+
+    fn get_u32_data(writer: &MockWriter) -> Vec<u32> {
+        let cursor: &Cursor<Vec<u8>> = writer.get_ref();
+        let pos = cursor.position() as usize;
+        let bytes_per_item = mem::size_of::<u32>();
+
+        let mut result = Vec::with_capacity(pos / bytes_per_item);
+        let mut i = 0;
+        while i < pos {
+            let data = &cursor.get_ref()[i..(i + bytes_per_item)];
+            let mut cursor = Cursor::new(data);
+            let item = cursor.read_u32::<BigEndian>().unwrap();
             result.push(item);
             i += bytes_per_item;
         }
