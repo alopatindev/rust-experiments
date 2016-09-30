@@ -18,10 +18,11 @@ use std::io::{Cursor, Error, ErrorKind, Result};
 use std::mem;
 
 const DEFAULT_FACTOR: u32 = 4;
-const CHANNELS: usize = 3;
+
+const RGB_CHANNELS: usize = 3;
 const YCBCR_CHANNELS: usize = 3;
 
-type RgbColor = [u8; CHANNELS];
+type RgbColor = [u8; RGB_CHANNELS];
 
 struct RgbImage {
     buffer: Vec<u8>,
@@ -60,7 +61,7 @@ impl FromFixed for u64 {
 impl RgbImage {
     pub fn new(width: usize, height: usize) -> Self {
         RgbImage {
-            buffer: vec![0; width * height * CHANNELS],
+            buffer: vec![0; width * height * RGB_CHANNELS],
             width: width,
             height: height,
         }
@@ -75,16 +76,16 @@ impl RgbImage {
     }
 
     pub fn put_pixel(&mut self, x: usize, y: usize, color: RgbColor) {
-        let index = (x + y * self.width) * CHANNELS;
-        for i in 0..CHANNELS {
+        let index = (x + y * self.width) * RGB_CHANNELS;
+        for i in 0..RGB_CHANNELS {
             self.buffer[index + i] = color[i];
         }
     }
 
     pub fn get_pixel(&self, x: usize, y: usize) -> RgbColor {
-        let mut color = [0; CHANNELS];
-        let index = (x + y * self.width) * CHANNELS;
-        for i in 0..CHANNELS {
+        let mut color = [0; RGB_CHANNELS];
+        let index = (x + y * self.width) * RGB_CHANNELS;
+        for i in 0..RGB_CHANNELS {
             color[i] = self.buffer[index + i];
         }
         color
@@ -124,8 +125,8 @@ impl RgbImage {
             let area22 = (x2 - x) * (y2 - y);
             let areas = Vec4::new(area11, area21, area12, area22);
 
-            let mut new_color: RgbColor = [0; CHANNELS];
-            for channel in 0..CHANNELS {
+            let mut new_color: RgbColor = [0; RGB_CHANNELS];
+            for channel in 0..RGB_CHANNELS {
                 // swaped colors, see https://tinyurl.com/hq3dedl
                 let q_channel = Vec4::new(qs[3][channel] as usize,
                                           qs[2][channel] as usize,
@@ -198,7 +199,7 @@ impl RgbImage {
             for x in 0..output.width {
                 let color = self.get_pixel(x, y);
                 let luma = RgbImage::to_ycbcr(&color).y as u8;
-                let gray_color = [luma; CHANNELS];
+                let gray_color = [luma; RGB_CHANNELS];
                 output.put_pixel(x, y, gray_color);
             }
         }
