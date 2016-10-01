@@ -249,7 +249,7 @@ impl RgbImage {
         try!(header_writer.write_u64(width));
         try!(header_writer.write_u64(height));
 
-        let mut encoder = HuffmanEncoder::new(header_writer.get_mut());
+        let mut encoder = HuffmanEncoder::new(header_writer.get_mut(), 1);
         let data = writer.get_ref().as_slice();
         let reader = Cursor::new(data);
         try!(encoder.analyze(reader.clone()));
@@ -309,7 +309,6 @@ impl RgbImage {
                 i += 1;
             }
         }
-
 
         try!(image::save_buffer(output_filename,
                                 output.buffer.as_slice(),

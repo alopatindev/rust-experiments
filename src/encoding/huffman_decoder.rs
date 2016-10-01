@@ -25,29 +25,27 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
                   offset_bit: u64,
                   original_length_bits: u64)
                   -> Result<u64> {
-        let mut read_chars = 0;
+        let mut read_bytes = 0;
 
-        if original_length_bits == 0 {
-            return Ok(read_chars);
-        }
+        if original_length_bits > 0 {
+            let original_length_bytes = original_length_bits / 8;
 
-        let original_length_bytes = original_length_bits / 8;
+            try!(self.input.set_position(offset_bit));
 
-        try!(self.input.set_position(offset_bit));
-
-        while read_chars < original_length_bytes {
-            match self.read_char() {
-                Some(ch) => {
-                    try!(output.write_all(&[ch]));
-                    read_chars += 1;
+            while read_bytes < original_length_bytes {
+                match self.decode_char() {
+                    Some(ch) => {
+                        try!(output.write(ch));
+                        read_bytes += ch.len() as u64;
+                    }
+                    None => unreachable!(),
                 }
-                None => unreachable!(),
             }
+
+            try!(output.flush());
         }
 
-        try!(output.flush());
-
-        let read_bits = read_chars * mem::size_of::<Char>() as u64 * 8;
+        let read_bits = read_bytes * 8;
         Ok(read_bits)
     }
 
@@ -71,12 +69,17 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
         for _ in 0..dict_length {
             let code_length = try!(self.input.read_u8());
             let code_data = try!(self.input.read_u16());
-            let ch = try!(self.input.read_u8());
-            let code = Code {
-                length: code_length,
-                data: code_data,
-            };
-            self.code_to_char.insert(code, ch);
+            let char_length = try!(self.input.read_u8()) as usize;
+            match read_char(&mut self.input, char_length) {
+                Some(ch) => {
+                    let code = Code {
+                        length: code_length,
+                        data: code_data,
+                    };
+                    self.code_to_char.insert(code, ch);
+                }
+                None => unreachable!(),
+            }
         }
 
         self.data_offset_bit = self.input.position();
@@ -84,7 +87,7 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
         Ok(())
     }
 
-    fn read_char(&mut self) -> Option<Char> {
+    fn decode_char(&mut self) -> Option<CharSlice> {
         let mut code = Code {
             length: 0,
             data: 0,
@@ -100,12 +103,12 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
 
             code.length += 1;
 
-            if let Some(&ch) = self.code_to_char.get(&code) {
-                return Some(ch);
+            if let Some(ref ch) = self.code_to_char.get(&code) {
+                return Some((*ch).as_slice());
             }
         }
 
-        println!("Error: couldn't read character length={} of {}; code={:b}; dict len={}",
+        println!("Error: couldn't decode character length={} of {}; code={:b}; dict len={}",
                  code.length,
                  max_code_length(),
                  code.data,

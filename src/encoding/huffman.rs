@@ -6,7 +6,8 @@ use std::mem;
 use structs::binary_tree::BinaryTree;
 use structs::bitset::BitSet;
 
-type Char = u8;
+type Char = Vec<u8>;
+type CharSlice<'a> = &'a [u8];
 type DictLength = u16;
 
 type CodeLength = u8;
@@ -31,6 +32,24 @@ type Tree = BinaryTree<NodeData>;
 struct Code {
     length: CodeLength,
     data: CodeData,
+}
+
+fn read_char<R>(input: &mut BitReader<R>, max_char_length: usize) -> Option<Char>
+    where R: Read
+{
+    let mut result = Vec::with_capacity(max_char_length);
+    for _ in 0..max_char_length {
+        match input.read_u8() {
+            Ok(buffer) => result.push(buffer),
+            Err(_) => break,
+        }
+    }
+
+    if result.is_empty() {
+        None
+    } else {
+        Some(result)
+    }
 }
 
 include!("huffman_encoder.rs");

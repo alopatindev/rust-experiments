@@ -29,13 +29,15 @@ type Filenames = Vec<String>;
 type FileEntries = Vec<FileEntry>;
 type Encoder<'a> = HuffmanEncoder<&'a mut File>;
 
+const CHAR_LENGTH: usize = 1;
+
 pub fn create_archive(output_filename: &str, files: Filenames) -> Result<()> {
     let mut entries = files_to_entries(files);
 
     try!(create_parent_directories(output_filename));
     let (header_length_bits, mut writer) = try!(write_header(output_filename, &entries));
 
-    let mut encoder = HuffmanEncoder::new(writer.get_mut());
+    let mut encoder = HuffmanEncoder::new(writer.get_mut(), CHAR_LENGTH);
     try!(write_compressed_data(&mut entries, &mut encoder, header_length_bits));
 
     try!(write_offsets(&entries, &mut encoder));
@@ -61,7 +63,6 @@ pub fn extract_archive(input_filename: &str, files: Filenames) -> Result<()> {
             print!("unpacking {} ...", entry.filename);
             try!(create_parent_directories(entry.filename.as_str()));
             let mut output = try!(File::create(entry.filename.clone()));
-            try!(decoder.get_reader_mut().set_position(entry.offset_bits));
             try!(decoder.decode(&mut output, entry.offset_bits, entry.size_bytes * 8));
             try!(output.flush());
             println!(" ok");
@@ -195,10 +196,11 @@ fn write_compressed_data(entries: &mut FileEntries,
     try!(encoder.analyze_finish());
 
     for entry in entries.iter_mut() {
-        println!("compressing {}", entry.filename);
+        print!("compressing {} ... ", entry.filename);
         let f = try!(File::open(entry.filename.clone()));
         entry.offset_bits = encoder.position() + header_length_bits;
         try!(encoder.compress(f));
+        println!("ok");
     }
 
     encoder.compress_finish()
@@ -206,17 +208,19 @@ fn write_compressed_data(entries: &mut FileEntries,
 
 fn write_offsets(entries: &FileEntries, encoder: &mut Encoder) -> Result<()> {
     let entries_length = entries.len() as u64;
-    let skip_length = mem::size_of_val(&entries_length);
-    try!(encoder.get_output_mut().seek(SeekFrom::Start(skip_length as u64)));
+    let skip_length = mem::size_of_val(&entries_length); // FIXME
+
+    let mut file_clone = try!(encoder.get_output_mut().try_clone());
+    try!(file_clone.seek(SeekFrom::Start(skip_length as u64)));
+    let mut writer = BitWriter::new(file_clone);
 
     for entry in entries {
-        try!(encoder.get_writer_mut().write_u64(entry.offset_bits));
-
+        try!(writer.write_u64(entry.offset_bits));
         let skip_length = mem::size_of_val(&entry.size_bytes) +
                           mem::size_of_val(&entry.filename_length_bytes) +
                           entry.filename_length_bytes as usize;
         let skip_length = skip_length as i64;
-        try!(encoder.get_output_mut().seek(SeekFrom::Current(skip_length)));
+        try!(writer.get_mut().seek(SeekFrom::Current(skip_length)));
     }
 
     Ok(())

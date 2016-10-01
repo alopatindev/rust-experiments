@@ -91,7 +91,7 @@ impl<W: Write> BitWriter<W> {
 
     pub fn flush(&mut self) -> Result<()> {
         if self.position != 0 {
-            let _ = self.output.write_all(&self.buffer);
+            let _ = self.output.write(&self.buffer);
             self.position = 0;
         }
 

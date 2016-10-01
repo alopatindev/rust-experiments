@@ -2,11 +2,9 @@
 mod tests {
     extern crate rand;
 
-    use rand::Rng;
     use std::collections::HashSet;
     use std::io::{Cursor, Write};
     use super::*;
-    use super::{Char, max_possible_chars};
     use super::{NodeData, Tree};
 
     const INPUT_TEXT: &'static str = "mississippi river";
@@ -31,22 +29,6 @@ mod tests {
         assert!(check_multiple(inputs));
     }
 
-    #[test]
-    fn full_alphabet() {
-        let mut input = (0..max_possible_chars())
-            .map(|x| x as Char)
-            .collect::<Vec<Char>>();
-        for _ in 0..5 {
-            let mut clone = input.clone();
-            input.append(&mut clone);
-        }
-
-        let mut rng = rand::thread_rng();
-        rng.shuffle(input.as_mut_slice());
-
-        assert_data(input.as_slice());
-    }
-
     quickcheck! {
         fn random_items(text: Vec<u8>) -> bool {
             check_data(&text[..])
@@ -58,7 +40,7 @@ mod tests {
     }
 
     fn check_data(input_slice: &[u8]) -> bool {
-        let mut coder = HuffmanEncoder::new(vec![]);
+        let mut coder = HuffmanEncoder::new(vec![], 1);
         let original_length_bytes = input_slice.len() as u64;
         let original_length_bits = original_length_bytes * 8;
         let analyzed_length_bits = coder.analyze(input_slice).unwrap();
@@ -106,7 +88,7 @@ mod tests {
     }
 
     fn check_multiple(inputs: Vec<Vec<u8>>) -> bool {
-        let mut coder = HuffmanEncoder::new(vec![]);
+        let mut coder = HuffmanEncoder::new(vec![], 1);
 
         for i in &inputs {
             let input_slice = i.as_slice();
@@ -171,19 +153,19 @@ mod tests {
         let expect = expect.into_iter()
             .map(|(ch, weight)| {
                 NodeData {
-                    chars: hashset!{ch as u8},
+                    chars: hashset!{vec![ch as u8]},
                     weight: weight,
                 }
             })
             .collect::<Vec<NodeData>>();
 
-        let mut coder = HuffmanEncoder::new(vec![]);
+        let mut coder = HuffmanEncoder::new(vec![], 1);
         let _ = coder.analyze(input).unwrap();
         let mut result: Vec<NodeData> = coder.compute_leaves()
             .iter()
             .map(|tree| tree.data().unwrap().clone())
             .collect::<Vec<NodeData>>();
-        result.sort_by_key(|node| *node.chars.iter().next().unwrap());
+        result.sort_by_key(|node| node.chars.iter().next().unwrap()[0]);
 
         assert_eq!(expect, result);
     }
@@ -192,7 +174,7 @@ mod tests {
     fn build_tree() {
         let text = INPUT_TEXT;
         let input_slice = text.as_bytes();
-        let mut coder = HuffmanEncoder::new(vec![]);
+        let mut coder = HuffmanEncoder::new(vec![], 1);
         let _ = coder.analyze(Cursor::new(input_slice)).unwrap();
 
         let leaves = coder.compute_leaves();
@@ -204,7 +186,7 @@ mod tests {
 
         let mut all_chars = HashSet::with_capacity(input_slice.len());
         for &i in input_slice {
-            all_chars.insert(i);
+            all_chars.insert(vec![i]);
         }
 
         assert_eq!(all_chars, tree.data().unwrap().chars);
@@ -240,13 +222,13 @@ mod tests {
         let text = INPUT_TEXT;
         let input_slice = text.as_bytes();
 
-        let mut coder = HuffmanEncoder::new(vec![]);
+        let mut coder = HuffmanEncoder::new(vec![], 1);
         let _ = coder.analyze(Cursor::new(input_slice)).unwrap();
         coder.analyze_finish().unwrap();
 
-        for (&ch_a, code_a) in &coder.char_to_code {
-            for (&ch_b, code_b) in &coder.char_to_code {
-                assert!(ch_a == ch_b || code_a != code_b);
+        for (ref ch_a, code_a) in &coder.char_to_code {
+            for (ref ch_b, code_b) in &coder.char_to_code {
+                assert!(*ch_a == *ch_b || *code_a != *code_b);
             }
         }
     }
@@ -257,7 +239,7 @@ mod tests {
         let text = INPUT_TEXT;
         let input_slice = text.as_bytes();
 
-        let mut coder = HuffmanEncoder::new(vec![]);
+        let mut coder = HuffmanEncoder::new(vec![], 1);
         let _ = coder.analyze(Cursor::new(input_slice)).unwrap();
         coder.analyze_finish().unwrap();
         let _ = coder.analyze(Cursor::new(input_slice)).unwrap();
@@ -269,7 +251,7 @@ mod tests {
         let text = INPUT_TEXT;
         let input_slice = text.as_bytes();
 
-        let mut coder = HuffmanEncoder::new(vec![]);
+        let mut coder = HuffmanEncoder::new(vec![], 1);
         let _ = coder.analyze(Cursor::new(input_slice)).unwrap();
         coder.analyze_finish().unwrap();
 
@@ -284,7 +266,7 @@ mod tests {
         let text = INPUT_TEXT;
         let input_slice = text.as_bytes();
 
-        let mut coder = HuffmanEncoder::new(vec![]);
+        let mut coder = HuffmanEncoder::new(vec![], 1);
         let _ = coder.analyze(Cursor::new(input_slice)).unwrap();
         coder.analyze_finish().unwrap();
 

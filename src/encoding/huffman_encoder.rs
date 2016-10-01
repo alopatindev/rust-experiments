@@ -3,10 +3,7 @@ pub struct HuffmanEncoder<W: Write> {
     output: BitWriter<W>,
     char_to_code: HashMap<Char, Code>,
     char_to_weight: HashMap<Char, u64>,
-}
-
-fn max_possible_chars() -> usize {
-    1 << (mem::size_of::<Char>() * 8)
+    max_char_length: usize,
 }
 
 fn max_code_length() -> CodeLength {
@@ -15,12 +12,13 @@ fn max_code_length() -> CodeLength {
 }
 
 impl<W: Write> HuffmanEncoder<W> {
-    pub fn new(output: W) -> Self {
+    pub fn new(output: W, max_char_length: usize) -> Self {
         HuffmanEncoder {
             state: State::Initial,
             output: BitWriter::new(output),
-            char_to_code: HashMap::with_capacity(max_possible_chars()),
-            char_to_weight: HashMap::with_capacity(max_possible_chars()),
+            char_to_code: HashMap::new(),
+            char_to_weight: HashMap::new(),
+            max_char_length: max_char_length,
         }
     }
 
@@ -32,10 +30,10 @@ impl<W: Write> HuffmanEncoder<W> {
         let mut input = BitReader::new(input);
         let mut bytes_read = 0;
 
-        while let Ok(buffer) = input.read_u8() {
-            self.char_to_weight.entry(buffer).or_insert(0);
-            self.char_to_weight.get_mut(&buffer).map(|mut w| *w += 1);
-            bytes_read += 1
+        while let Some(ch) = read_char(&mut input, self.max_char_length) {
+            self.char_to_weight.entry(ch.clone()).or_insert(0);
+            self.char_to_weight.get_mut(&ch).map(|mut w| *w += 1);
+            bytes_read += ch.len() as u64;
         }
 
         Ok(bytes_read * 8)
@@ -59,8 +57,8 @@ impl<W: Write> HuffmanEncoder<W> {
         let mut input = BitReader::new(input);
         let mut bits_written = 0;
 
-        while let Ok(buffer) = input.read_u8() {
-            let code = self.char_to_code.get(&buffer).unwrap();
+        while let Some(ch) = read_char(&mut input, self.max_char_length) {
+            let code = self.char_to_code.get(&ch).unwrap();
 
             assert!(code.length <= max_code_length());
             for i in 0..code.length {
@@ -100,9 +98,9 @@ impl<W: Write> HuffmanEncoder<W> {
     fn compute_leaves(&mut self) -> Vec<Tree> {
         let mut leaves: Vec<Tree> = Vec::with_capacity(self.char_to_weight.len());
 
-        for (&ch, &weight) in &self.char_to_weight {
+        for (ref ch, &weight) in &self.char_to_weight {
             let data: NodeData = NodeData {
-                chars: hashset!{ch},
+                chars: hashset!{(*ch).clone()},
                 weight: weight,
             };
             leaves.push(BinaryTree::new_leaf(data));
@@ -185,25 +183,25 @@ impl<W: Write> HuffmanEncoder<W> {
 
     fn build_dictionary(&mut self, tree: Tree) {
         if let Some(data) = tree.data() {
-            for &ch in &data.chars {
+            for ref ch in &data.chars {
                 let code = self.compute_code(ch, &tree);
+                let ch: Char = (*ch).clone();
                 self.char_to_code.insert(ch, code);
             }
         }
 
-        assert!(self.char_to_code.len() <= max_possible_chars());
+        assert!(self.char_to_code.len() <= self.max_possible_chars());
     }
 
-    fn compute_code(&self, ch: Char, tree: &Tree) -> Code {
+    fn compute_code(&self, ch: CharSlice, tree: &Tree) -> Code {
         let mut tree = tree.clone();
         let mut code = BitSet::new();
         let mut length: CodeLength = 0;
 
         loop {
-            if tree.left_data().is_some() && tree.left_data().unwrap().chars.contains(&ch) {
+            if tree.left_data().is_some() && tree.left_data().unwrap().chars.contains(ch) {
                 tree = tree.left();
-            } else if tree.right_data().is_some() &&
-                      tree.right_data().unwrap().chars.contains(&ch) {
+            } else if tree.right_data().is_some() && tree.right_data().unwrap().chars.contains(ch) {
                 code.insert(length as usize);
                 tree = tree.right();
             } else {
@@ -233,13 +231,20 @@ impl<W: Write> HuffmanEncoder<W> {
         let dict_length = self.char_to_code.len() as DictLength;
         try!(self.output.write_u16(dict_length));
 
-        for (&ch, code) in &self.char_to_code {
+        for (ref ch, code) in &self.char_to_code {
             try!(self.output.write_u8(code.length));
             try!(self.output.write_u16(code.data));
-            try!(self.output.write_u8(ch));
+            try!(self.output.write_u8(ch.len() as u8));
+            for i in ch.iter() {
+                try!(self.output.write_u8(*i));
+            }
         }
 
         Ok(())
+    }
+
+    fn max_possible_chars(&self) -> usize {
+        1 << (self.max_char_length * 8)
     }
 }
 
