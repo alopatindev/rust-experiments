@@ -68,7 +68,7 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
 
         for _ in 0..dict_length {
             let code_length = try!(self.input.read_u8());
-            let code_data = try!(self.input.read_u16());
+            let code_data = try!(self.input.read_u32());
             let char_length = try!(self.input.read_u8()) as usize;
             match read_char(&mut self.input, char_length) {
                 Some(ch) => {

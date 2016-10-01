@@ -22,6 +22,8 @@ const DEFAULT_FACTOR: u32 = 4;
 const RGB_CHANNELS: usize = 3;
 const YCBCR_CHANNELS: usize = 3;
 
+const CHAR_LENGTH: usize = 4;
+
 type RgbColor = [u8; RGB_CHANNELS];
 
 struct RgbImage {
@@ -249,7 +251,7 @@ impl RgbImage {
         try!(header_writer.write_u64(width));
         try!(header_writer.write_u64(height));
 
-        let mut encoder = HuffmanEncoder::new(header_writer.get_mut(), 1);
+        let mut encoder = HuffmanEncoder::new(header_writer.get_mut(), CHAR_LENGTH);
         let data = writer.get_ref().as_slice();
         let reader = Cursor::new(data);
         try!(encoder.analyze(reader.clone()));

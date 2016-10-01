@@ -233,7 +233,7 @@ impl<W: Write> HuffmanEncoder<W> {
 
         for (ref ch, code) in &self.char_to_code {
             try!(self.output.write_u8(code.length));
-            try!(self.output.write_u16(code.data));
+            try!(self.output.write_u32(code.data));
             try!(self.output.write_u8(ch.len() as u8));
             for i in ch.iter() {
                 try!(self.output.write_u8(*i));
