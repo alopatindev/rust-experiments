@@ -22,7 +22,7 @@ const DEFAULT_FACTOR: u32 = 4;
 const RGB_CHANNELS: usize = 3;
 const YCBCR_CHANNELS: usize = 3;
 
-const CHAR_LENGTH: usize = 4;
+const CHAR_LENGTH: usize = 2;
 
 type RgbColor = [u8; RGB_CHANNELS];
 
@@ -39,10 +39,12 @@ struct YCbCr {
 }
 
 const FLOAT_OFFSET: f64 = 1e-6;
-const FIXED_OFFSET: u64 = 1_000;
+const FIXED_OFFSET: u64 = 100_000 * 256;
+
+type FixedPoint = u8;
 
 trait ToFixed {
-    fn to_fixed(&self) -> u32;
+    fn to_fixed(&self) -> FixedPoint;
 }
 
 trait FromFixed {
@@ -50,14 +52,15 @@ trait FromFixed {
 }
 
 impl ToFixed for f64 {
-    fn to_fixed(&self) -> u32 {
+    fn to_fixed(&self) -> FixedPoint {
         let result = (self / FLOAT_OFFSET) as u64;
         let result = result / FIXED_OFFSET;
-        result as u32
+        // let result = clamp(result, 0, 255);
+        result as FixedPoint
     }
 }
 
-impl FromFixed for u32 {
+impl FromFixed for FixedPoint {
     fn fixed_to_f64(&self) -> f64 {
         let result = *self as u64 * FIXED_OFFSET;
         result as f64 * FLOAT_OFFSET
@@ -219,6 +222,7 @@ impl RgbImage {
         let mut y_vec = Vec::with_capacity(n);
         let mut cb_vec = Vec::with_capacity(n);
         let mut cr_vec = Vec::with_capacity(n);
+
         for y in 0..self.height {
             for x in 0..self.width {
                 let color = self.get_pixel(x, y);
@@ -228,31 +232,34 @@ impl RgbImage {
             }
         }
 
-        let mut writer = BitWriter::new(Vec::with_capacity(n * YCBCR_CHANNELS));
+        let pixels_length = n * YCBCR_CHANNELS * mem::size_of::<FixedPoint>();
+        let mut writer = BitWriter::new(Vec::with_capacity(pixels_length));
 
         for &y in &y_vec[..] {
-            try!(writer.write_u32(y));
+            try!(writer.write_u8(y));
         }
 
         for &cb in &cb_vec[..] {
-            try!(writer.write_u32(cb));
+            try!(writer.write_u8(cb));
         }
 
         for &cr in &cr_vec[..] {
-            try!(writer.write_u32(cr));
+            try!(writer.write_u8(cr));
         }
 
         try!(writer.flush());
 
-        let width = self.width as u64;
-        let height = self.height as u64;
+        let width = self.width as u32;
+        let height = self.height as u32;
         let f = try!(File::create(output_filename));
         let mut header_writer = BitWriter::new(f);
-        try!(header_writer.write_u64(width));
-        try!(header_writer.write_u64(height));
+        try!(header_writer.write_u32(width));
+        try!(header_writer.write_u32(height));
 
         let mut encoder = HuffmanEncoder::new(header_writer.get_mut(), CHAR_LENGTH);
         let data = writer.get_ref().as_slice();
+        assert_eq!(pixels_length, data.len());
+
         let reader = Cursor::new(data);
         try!(encoder.analyze(reader.clone()));
         try!(encoder.analyze_finish());
@@ -265,34 +272,38 @@ impl RgbImage {
     pub fn decompress(input_filename: &str, output_filename: &str) -> Result<()> {
         let f = try!(File::open(input_filename));
         let mut reader = BitReader::new(f);
-        let width = try!(reader.read_u64()) as usize;
-        let height = try!(reader.read_u64()) as usize;
+        let width = try!(reader.read_u32()) as usize;
+        let height = try!(reader.read_u32()) as usize;
         let n = width * height;
-        let pixels_length = (n * YCBCR_CHANNELS) * mem::size_of::<u32>();
-        let pixels_length_bits = pixels_length as u64 * 8;
+        let pixels_length = n * YCBCR_CHANNELS * mem::size_of::<FixedPoint>();
+        let pixels_length_bits = pixels_length * 8;
         let mut pixels_writer = Vec::with_capacity(pixels_length);
 
         let mut coder = try!(HuffmanDecoder::new(reader.get_ref()));
         let data_offset_bit = coder.data_offset_bit();
-        try!(coder.decode(&mut pixels_writer, data_offset_bit, pixels_length_bits));
+        try!(coder.decode(&mut pixels_writer,
+                          data_offset_bit,
+                          pixels_length_bits as u64));
         let mut reader = BitReader::new(pixels_writer.as_slice());
+
+        assert_eq!(pixels_length, pixels_writer.len());
 
         let mut y_vec = Vec::with_capacity(n);
         let mut cb_vec = Vec::with_capacity(n);
         let mut cr_vec = Vec::with_capacity(n);
 
         for _ in 0..n {
-            let value = try!(reader.read_u32()).fixed_to_f64();
+            let value = try!(reader.read_u8()).fixed_to_f64();
             y_vec.push(value);
         }
 
         for _ in 0..n {
-            let value = try!(reader.read_u32()).fixed_to_f64();
+            let value = try!(reader.read_u8()).fixed_to_f64();
             cb_vec.push(value);
         }
 
         for _ in 0..n {
-            let value = try!(reader.read_u32()).fixed_to_f64();
+            let value = try!(reader.read_u8()).fixed_to_f64();
             cr_vec.push(value);
         }
 
