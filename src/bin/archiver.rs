@@ -20,13 +20,18 @@ use walkdir::WalkDir;
 #[derive(Debug)]
 pub struct FileEntry {
     offset_bits: u64,
-    size_bytes: u64,
-    filename_length_bytes: u64,
+    size_bytes: FileSize,
+    filename_length_bytes: FilenameLength,
     filename: String,
 }
 
 type Filenames = Vec<String>;
 type FileEntries = Vec<FileEntry>;
+
+type FileSize = u64;
+type FileEntriesLength = u64;
+type FilenameLength = u16;
+
 type Encoder<'a> = HuffmanEncoder<&'a mut File>;
 
 const CHAR_LENGTH: usize = 1;
@@ -150,7 +155,7 @@ fn files_to_entries(files: Filenames) -> FileEntries {
                         let entry = FileEntry {
                             offset_bits: 0,
                             size_bytes: size,
-                            filename_length_bytes: f.len() as u64,
+                            filename_length_bytes: f.len() as FilenameLength,
                             filename: f,
                         };
                         Some(entry)
@@ -166,7 +171,7 @@ fn files_to_entries(files: Filenames) -> FileEntries {
 }
 
 fn write_header(output_filename: &str, entries: &FileEntries) -> Result<(u64, BitWriter<File>)> {
-    let entries_length = entries.len() as u64;
+    let entries_length = entries.len() as FileEntriesLength;
     let output = try!(File::create(output_filename));
     let mut writer = BitWriter::new(output);
 
@@ -174,7 +179,7 @@ fn write_header(output_filename: &str, entries: &FileEntries) -> Result<(u64, Bi
     for ref entry in entries {
         try!(writer.write_u64(entry.offset_bits));
         try!(writer.write_u64(entry.size_bytes));
-        try!(writer.write_u64(entry.filename_length_bytes));
+        try!(writer.write_u16(entry.filename_length_bytes));
         for &ch in entry.filename.as_bytes() {
             try!(writer.write_u8(ch));
         }
@@ -207,8 +212,8 @@ fn write_compressed_data(entries: &mut FileEntries,
 }
 
 fn write_offsets(entries: &FileEntries, encoder: &mut Encoder) -> Result<()> {
-    let entries_length = entries.len() as u64;
-    let skip_length = mem::size_of_val(&entries_length); // FIXME
+    let entries_length = entries.len() as FileEntriesLength;
+    let skip_length = mem::size_of_val(&entries_length);
 
     let mut file_clone = try!(encoder.get_output_mut().try_clone());
     try!(file_clone.seek(SeekFrom::Start(skip_length as u64)));
@@ -229,13 +234,13 @@ fn write_offsets(entries: &FileEntries, encoder: &mut Encoder) -> Result<()> {
 fn load_header(input_filename: &str) -> Result<(FileEntries, BitReader<File>)> {
     let input = try!(File::open(input_filename));
     let mut reader = BitReader::new(input);
-    let entries_length = try!(reader.read_u64());
+    let entries_length: FileEntriesLength = try!(reader.read_u64());
     let mut entries = Vec::with_capacity(entries_length as usize);
 
     for _ in 0..entries_length {
-        let offset_bits = try!(reader.read_u64());
-        let size_bytes = try!(reader.read_u64());
-        let filename_length_bytes = try!(reader.read_u64());
+        let offset_bits: u64 = try!(reader.read_u64());
+        let size_bytes: FileSize = try!(reader.read_u64());
+        let filename_length_bytes: FilenameLength = try!(reader.read_u16());
 
         let mut filename = Vec::with_capacity(filename_length_bytes as usize);
         for _ in 0..filename_length_bytes {
