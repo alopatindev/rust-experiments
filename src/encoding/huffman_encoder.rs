@@ -229,7 +229,7 @@ impl<W: Write> HuffmanEncoder<W> {
         for (ref ch, code) in &self.char_to_code {
             let data_with_marker: CodeData = Self::pack_data(&code);
             assert!(code.data != data_with_marker);
-            try!(self.output.write_u32(data_with_marker));
+            try!(self.output.write_u16(data_with_marker));
             try!(self.output.write_u8(ch.len() as u8));
             for i in ch.iter() {
                 try!(self.output.write_u8(*i));

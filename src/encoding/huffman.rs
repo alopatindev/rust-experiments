@@ -11,7 +11,7 @@ type CharSlice<'a> = &'a [u8];
 type DictLength = u16;
 
 type CodeLength = u8;
-type CodeData = u32;
+type CodeData = u16;
 
 #[derive(PartialEq, Debug)]
 enum State {

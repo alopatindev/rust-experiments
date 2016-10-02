@@ -67,7 +67,7 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
         self.code_to_char.reserve(dict_length);
 
         for _ in 0..dict_length {
-            let data_with_marker = try!(self.input.read_u32());
+            let data_with_marker = try!(self.input.read_u16());
             let (code_data, code_length) = Self::unpack_data(data_with_marker);
             let char_length = try!(self.input.read_u8()) as usize;
             match read_char(&mut self.input, char_length) {
