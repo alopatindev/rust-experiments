@@ -67,8 +67,8 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
         self.code_to_char.reserve(dict_length);
 
         for _ in 0..dict_length {
-            let code_length = try!(self.input.read_u8());
-            let code_data = try!(self.input.read_u32());
+            let data_with_marker = try!(self.input.read_u32());
+            let (code_data, code_length) = Self::unpack_data(data_with_marker);
             let char_length = try!(self.input.read_u8()) as usize;
             match read_char(&mut self.input, char_length) {
                 Some(ch) => {
@@ -85,6 +85,16 @@ impl<R: Read + Seek> HuffmanDecoder<R> {
         self.data_offset_bit = self.input.position();
 
         Ok(())
+    }
+
+    fn unpack_data(data_with_marker: CodeData) -> (CodeData, CodeLength) {
+        let size = mem::size_of::<CodeData>() * 8;
+        let length = size - data_with_marker.leading_zeros() as usize - 1;
+        let length = length as u8;
+        let shifted_one = 1 << length;
+        let mask = !shifted_one;
+        let data = data_with_marker & mask;
+        (data, length)
     }
 
     fn decode_char(&mut self) -> Option<CharSlice> {

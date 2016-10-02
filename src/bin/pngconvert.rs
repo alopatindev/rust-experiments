@@ -101,7 +101,7 @@ impl RgbImage {
     }
 
     pub fn scale_nearest_neighbor(&self, factor: usize) -> Result<RgbImage> {
-        let mut output = RgbImage::new(self.width * factor, self.height * factor);
+        let mut output = Self::new(self.width * factor, self.height * factor);
 
         for y in 0..self.height {
             for x in 0..self.width {
@@ -120,7 +120,7 @@ impl RgbImage {
     }
 
     pub fn scale_bilinear(&self, factor: usize) -> Result<RgbImage> {
-        let mut output = RgbImage::new(self.width * factor, self.height * factor);
+        let mut output = Self::new(self.width * factor, self.height * factor);
 
         let bucket_width = output.width / (self.width - 1);
         let bucket_height = output.height / (self.height - 1);
@@ -202,12 +202,12 @@ impl RgbImage {
     }
 
     pub fn grayscale(&self) -> Result<RgbImage> {
-        let mut output = RgbImage::new(self.width, self.height);
+        let mut output = Self::new(self.width, self.height);
 
         for y in 0..output.height {
             for x in 0..output.width {
                 let color = self.get_pixel(x, y);
-                let luma = RgbImage::to_ycbcr(&color).y as u8;
+                let luma = Self::to_ycbcr(&color).y as u8;
                 let gray_color = [luma; RGB_CHANNELS];
                 output.put_pixel(x, y, gray_color);
             }
@@ -226,9 +226,9 @@ impl RgbImage {
         for y in 0..self.height {
             for x in 0..self.width {
                 let color = self.get_pixel(x, y);
-                y_vec.push(RgbImage::to_ycbcr(&color).y.to_fixed());
-                cb_vec.push(RgbImage::to_ycbcr(&color).cb.to_fixed());
-                cr_vec.push(RgbImage::to_ycbcr(&color).cr.to_fixed());
+                y_vec.push(Self::to_ycbcr(&color).y.to_fixed());
+                cb_vec.push(Self::to_ycbcr(&color).cb.to_fixed());
+                cr_vec.push(Self::to_ycbcr(&color).cr.to_fixed());
             }
         }
 
@@ -308,7 +308,7 @@ impl RgbImage {
         }
 
         // pixels to rgb
-        let mut output = RgbImage::new(width, height);
+        let mut output = Self::new(width, height);
         let mut i = 0;
         for y in 0..height {
             for x in 0..width {
@@ -317,7 +317,7 @@ impl RgbImage {
                     cb: cb_vec[i],
                     cr: cr_vec[i],
                 };
-                let new_pixel = RgbImage::to_rgb(&compressed);
+                let new_pixel = Self::to_rgb(&compressed);
                 output.put_pixel(x, y, new_pixel);
                 i += 1;
             }

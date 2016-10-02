@@ -34,6 +34,11 @@ struct Code {
     data: CodeData,
 }
 
+fn max_code_length() -> CodeLength {
+    let size_bits = mem::size_of::<CodeData>() * 8;
+    size_bits as CodeLength - 1
+}
+
 fn read_char<R>(input: &mut BitReader<R>, max_char_length: usize) -> Option<Char>
     where R: Read
 {

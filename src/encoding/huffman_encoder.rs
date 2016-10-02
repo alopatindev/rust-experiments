@@ -6,11 +6,6 @@ pub struct HuffmanEncoder<W: Write> {
     max_char_length: usize,
 }
 
-fn max_code_length() -> CodeLength {
-    let size_bits = mem::size_of::<CodeData>() * 8;
-    size_bits as CodeLength - 1
-}
-
 impl<W: Write> HuffmanEncoder<W> {
     pub fn new(output: W, max_char_length: usize) -> Self {
         HuffmanEncoder {
@@ -232,8 +227,9 @@ impl<W: Write> HuffmanEncoder<W> {
         try!(self.output.write_u16(dict_length));
 
         for (ref ch, code) in &self.char_to_code {
-            try!(self.output.write_u8(code.length));
-            try!(self.output.write_u32(code.data));
+            let data_with_marker: CodeData = Self::pack_data(&code);
+            assert!(code.data != data_with_marker);
+            try!(self.output.write_u32(data_with_marker));
             try!(self.output.write_u8(ch.len() as u8));
             for i in ch.iter() {
                 try!(self.output.write_u8(*i));
@@ -241,6 +237,12 @@ impl<W: Write> HuffmanEncoder<W> {
         }
 
         Ok(())
+    }
+
+    fn pack_data(code: &Code) -> CodeData {
+        let shifted_one = 1 << code.length;
+        let result = code.data | shifted_one;
+        result
     }
 
     fn max_possible_chars(&self) -> usize {
