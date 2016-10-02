@@ -37,6 +37,8 @@ mod tests {
     use super::*;
     use test::Bencher;
 
+    const BENCH_MAX_N: usize = 1000;
+
     #[test]
     fn simple() {
         let a: Vec<i32> = vec![10, 22, 55, 66, 66, 333, 1234, 6689];
@@ -134,8 +136,6 @@ mod tests {
         result.sort();
         result
     }
-
-    const BENCH_MAX_N: usize = 1000;
 
     #[bench]
     fn bench_std(b: &mut Bencher) {

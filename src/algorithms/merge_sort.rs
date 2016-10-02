@@ -121,6 +121,8 @@ mod tests {
     use super::*;
     use test::Bencher;
 
+    const BENCH_MAX_N: usize = 1000;
+
     #[test]
     fn simple() {
         type T = i32;
@@ -181,8 +183,6 @@ mod tests {
 
         result
     }
-
-    const BENCH_MAX_N: usize = 1000;
 
     #[bench]
     fn bench_recursive(b: &mut Bencher) {
