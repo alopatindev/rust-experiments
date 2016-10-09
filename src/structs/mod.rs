@@ -1,3 +1,4 @@
+pub mod bigint;
 pub mod binary_tree;
 pub mod bitset;
 pub mod list;
