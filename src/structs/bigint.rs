@@ -282,7 +282,26 @@ impl Mul for BigInt {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self {
-        unimplemented!()
+        let n = max(self.digits.len(), other.digits.len());
+        let mut result = vec![0; 2 * n];
+
+        let negative = self.negative != other.negative;
+
+        for (i, b) in other.digits.iter().enumerate() {
+            for (j, a) in self.digits.iter().enumerate() {
+                let index = i + j;
+                let value = result[index] + a * b;
+                let (carry, digit) = (value / BASE, value % BASE);
+                result[index] = digit;
+                result[index + 1] += carry;
+            }
+        }
+
+        BigInt {
+                negative: negative,
+                digits: result,
+            }
+            .normalize()
     }
 }
 
@@ -433,8 +452,24 @@ mod tests {
 
     #[test]
     fn multiply() {
+        let result = BigInt::from("12") * BigInt::from("34");
+        assert_eq!("408", result.to_string());
+
+        let result = BigInt::from("-12") * BigInt::from("34");
+        assert_eq!("-408", result.to_string());
+
+        let result = BigInt::from("12") * BigInt::from("-34");
+        assert_eq!("-408", result.to_string());
+
+        let result = BigInt::from("-12") * BigInt::from("-34");
+        assert_eq!("408", result.to_string());
+
         let result = BigInt::from(A) * BigInt::from(B);
         assert_eq!("12203040983750153968618940597242747847995176",
+                   result.to_string());
+
+        let result = BigInt::from(A) * BigInt::from(C);
+        assert_eq!("-97546106240975420131236017704190212676325604",
                    result.to_string());
     }
 
