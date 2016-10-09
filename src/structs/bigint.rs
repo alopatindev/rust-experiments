@@ -1,7 +1,7 @@
 use std::cmp::{max, Ordering};
-use std::ops::{Add, Sub, Mul, Div};
+use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct BigInt {
     negative: bool,
     digits: Digits, // lowest first
@@ -13,6 +13,10 @@ pub type Digits = Vec<Digit>;
 const BASE: Digit = 10;
 
 impl BigInt {
+    pub fn new(num: i64) -> Self {
+        Self::from(num.to_string().as_str())
+    }
+
     pub fn from(text: &str) -> Self {
         if text.is_empty() {
             return Self::zero();
@@ -68,7 +72,14 @@ impl BigInt {
     }
 
     pub fn pow(&self, exponent: i32) -> Self {
-        unimplemented!()
+        let factor = self.clone();
+        let mut result = self.clone();
+
+        for _ in 1..exponent {
+            result *= factor.clone();
+        }
+
+        result
     }
 
     pub fn sqrt(&self) -> Self {
@@ -76,7 +87,18 @@ impl BigInt {
     }
 
     pub fn factorial(&self) -> Self {
-        unimplemented!()
+        // FIXME: avoid clone?
+
+        let one = BigInt::new(1);
+        let mut n = self.clone() - one.clone();
+        let mut result = self.clone();
+
+        while n > one {
+            result *= n.clone();
+            n -= one.clone();
+        }
+
+        result
     }
 
     fn normalize(mut self) -> Self {
@@ -262,6 +284,13 @@ impl Add for BigInt {
     }
 }
 
+impl AddAssign for BigInt {
+    fn add_assign(&mut self, other: BigInt) {
+        let result = self.clone() + other;
+        *self = result;
+    }
+}
+
 impl Sub for BigInt {
     type Output = Self;
 
@@ -275,6 +304,13 @@ impl Sub for BigInt {
         } else {
             self.sub_positives(other)
         }
+    }
+}
+
+impl SubAssign for BigInt {
+    fn sub_assign(&mut self, other: BigInt) {
+        let result = self.clone() - other;
+        *self = result;
     }
 }
 
@@ -302,6 +338,13 @@ impl Mul for BigInt {
                 digits: result,
             }
             .normalize()
+    }
+}
+
+impl MulAssign for BigInt {
+    fn mul_assign(&mut self, other: BigInt) {
+        let result = self.clone() * other;
+        *self = result;
     }
 }
 
@@ -415,6 +458,12 @@ mod tests {
 
         let result = BigInt::from(C) + BigInt::from(C);
         assert_eq!("-19753086466775304442196", result.to_string());
+
+        let mut result = BigInt::new(12);
+        result += BigInt::new(3);
+        assert_eq!("15", result.to_string());
+        result += BigInt::new(0);
+        assert_eq!("15", result.to_string());
     }
 
     #[test]
@@ -448,6 +497,10 @@ mod tests {
 
         let result = BigInt::from(C) - BigInt::from(C);
         assert_eq!(BigInt::zero(), result);
+
+        let mut result = BigInt::from("13");
+        result -= BigInt::from("22");
+        assert_eq!("-9", result.to_string());
     }
 
     #[test]
@@ -471,6 +524,10 @@ mod tests {
         let result = BigInt::from(A) * BigInt::from(C);
         assert_eq!("-97546106240975420131236017704190212676325604",
                    result.to_string());
+
+        let mut result = BigInt::from("12");
+        result *= BigInt::from("34");
+        assert_eq!("408", result.to_string());
     }
 
     #[test]
