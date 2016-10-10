@@ -24,6 +24,7 @@ pub fn quick_sort<T>(a: &mut Vec<T>) -> &mut Vec<T>
     a
 }
 
+#[allow(collapsible_if)]
 pub fn partition<T>(a: &mut Vec<T>, mut low: usize, mut high: usize) -> usize
     where T: PartialOrd + Copy
 {
