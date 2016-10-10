@@ -33,6 +33,7 @@ Contents
 * encoding/huffman.rs
 * encoding/huffman_tests.rs
 * encoding/unicode.rs
+* structs/bigint.rs
 * structs/binary_tree.rs
 * structs/bitset_iterators.rs
 * structs/bitset.rs
