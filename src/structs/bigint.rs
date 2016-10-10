@@ -65,7 +65,7 @@ impl BigInt {
     }
 
     pub fn to_i64(&self) -> Result<i64, &str> {
-        if self.clone().abs() <= BigInt::new(i64::max_value()) {
+        if self.clone().abs() <= Self::new(i64::max_value()) {
             let mut raw_value = 0;
             let mut shift = 1;
 
@@ -96,11 +96,11 @@ impl BigInt {
     }
 
     pub fn inc(&mut self) {
-        *self += BigInt::new(1)
+        *self += Self::new(1)
     }
 
     pub fn dec(&mut self) {
-        *self -= BigInt::new(1)
+        *self -= Self::new(1)
     }
 
     pub fn pow(&self, exponent: i32) -> Self {
@@ -127,7 +127,7 @@ impl BigInt {
     pub fn factorial(&self) -> Self {
         // FIXME: avoid clone?
 
-        let one = BigInt::new(1);
+        let one = Self::new(1);
         let mut n = self.clone();
         n.dec();
         let mut result = self.clone();
@@ -143,8 +143,8 @@ impl BigInt {
     fn compute_root_newton(&self, exponent: i32) -> Self {
         // see http://www.cse.wustl.edu/~kjg/cse131/Notes/SquareRoot/sqrt.html
 
-        let epsilon = BigInt::new(1);
-        let exponent_big = BigInt::new(exponent as i64);
+        let epsilon = Self::new(1);
+        let exponent_big = Self::new(exponent as i64);
 
         let f = |guess: &BigInt| guess.pow(exponent) - self.clone();
 
@@ -155,7 +155,7 @@ impl BigInt {
             diff < epsilon
         };
 
-        let mut guess = BigInt::new(1);
+        let mut guess = Self::new(1);
 
         loop {
             let new_guess = guess.clone() - f(&guess) / f_prime(&guess);
@@ -428,7 +428,7 @@ impl Div for BigInt {
     fn div(self, other: Self) -> Self {
         // FIXME: avoid clone?
 
-        let mut result = BigInt::zero();
+        let mut result = Self::zero();
 
         let mut numenator = self.clone().abs();
         let divisor = other.clone().abs();
