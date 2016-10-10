@@ -64,6 +64,23 @@ impl BigInt {
         result
     }
 
+    pub fn to_i64(&self) -> Result<i64, &str> {
+        if self.clone().abs() <= BigInt::new(i64::max_value()) {
+            let mut raw_value = 0;
+            let mut shift = 1;
+
+            for &digit in self.digits.iter() {
+                raw_value += shift * (digit as u64);
+                shift *= 10;
+            }
+
+            let value = raw_value as i64;
+            if self.negative { Ok(-value) } else { Ok(value) }
+        } else {
+            Err("The number is out of range")
+        }
+    }
+
     pub fn negate(self) -> Self {
         BigInt {
             negative: !self.negative,
@@ -98,7 +115,7 @@ impl BigInt {
     }
 
     pub fn sqrt(&self) -> Self {
-        unimplemented!()
+        self.compute_root_newton(2)
     }
 
     pub fn factorial(&self) -> Self {
@@ -115,6 +132,42 @@ impl BigInt {
         }
 
         result
+    }
+
+    fn compute_root_newton(&self, exponent: i32) -> Self {
+        // see http://www.cse.wustl.edu/~kjg/cse131/Notes/SquareRoot/sqrt.html
+
+        let epsilon = BigInt::new(1);
+        let exponent_big = BigInt::new(exponent as i64);
+
+        let f = |guess: &BigInt| guess.pow(exponent) - self.clone();
+
+        let f_prime = |guess: &BigInt| exponent_big.clone() * guess.pow(exponent - 1);
+
+        let close_enough = |a: &BigInt, b: &BigInt| {
+            let diff = (a.clone() - b.clone()).abs();
+            diff < epsilon
+        };
+
+        let mut guess = BigInt::new(1);
+
+        loop {
+            let new_guess = guess.clone() - f(&guess) / f_prime(&guess);
+            if close_enough(&new_guess, &guess) {
+                break;
+            } else {
+                guess = new_guess;
+            }
+        }
+
+        // this hack improves integer precision
+        match (guess.clone() * guess.clone()).partial_cmp(self) {
+            Some(Ordering::Less) => guess.inc(),
+            Some(Ordering::Greater) => guess.dec(),
+            _ => (),
+        }
+
+        guess
     }
 
     fn normalize(mut self) -> Self {
@@ -483,6 +536,24 @@ mod tests {
     }
 
     #[test]
+    fn to_i64() {
+        assert_eq!(Ok(123456), BigInt::from("123456").to_i64());
+        assert_eq!(Ok(-123456), BigInt::from("-123456").to_i64());
+
+        assert_eq!(Err("The number is out of range"), BigInt::from(A).to_i64());
+        assert_eq!(Err("The number is out of range"), BigInt::from(C).to_i64());
+
+        assert_eq!(Err("The number is out of range"),
+                   BigInt::new(i64::min_value()).to_i64());
+
+        assert_eq!(Ok(-9223372036854775807),
+                   BigInt::new(i64::min_value() + 1).to_i64());
+
+        assert_eq!(Ok(9223372036854775807),
+                   BigInt::new(i64::max_value()).to_i64());
+    }
+
+    #[test]
     fn add() {
         let result = BigInt::from(A) + BigInt::from(B);
         assert_eq!("11112101130051110000110", result.to_string());
@@ -684,18 +755,13 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn sqrt() {
-        assert_eq!("1", BigInt::from("1").sqrt().to_string());
-        assert_eq!("5", BigInt::from("25").sqrt().to_string());
-        assert_eq!("6", BigInt::from("36").sqrt().to_string());
-        assert_eq!("12", BigInt::from("144").sqrt().to_string());
-        assert_eq!("30", BigInt::from("900").sqrt().to_string());
-
-        let result = BigInt::from("30").sqrt();
-        assert!(result == BigInt::new(5) || result == BigInt::new(6));
-
-        assert_eq!("99380799118", BigInt::from(A).sqrt().to_string());
+        let assert_approx = |expect, input| BigInt::new(expect) == BigInt::new(input);
+        assert_approx(1, 1);
+        assert_approx(6, 36);
+        assert_approx(12, 144);
+        assert_approx(30, 900);
+        assert_approx(5, 30);
     }
 
     // TODO: benchmarks?
