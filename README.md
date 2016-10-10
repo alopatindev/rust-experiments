@@ -44,3 +44,4 @@ Contents
 * structs/list_mut.rs
 * structs/list.rs
 * structs/max_heap.rs
+* structs/ring_buffer.rs

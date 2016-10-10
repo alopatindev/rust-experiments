@@ -5,3 +5,4 @@ pub mod complex;
 pub mod list;
 pub mod list_mut;
 pub mod max_heap;
+pub mod ring_buffer;
