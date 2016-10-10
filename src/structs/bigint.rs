@@ -69,7 +69,7 @@ impl BigInt {
             let mut raw_value = 0;
             let mut shift = 1;
 
-            for &digit in self.digits.iter() {
+            for &digit in &self.digits {
                 raw_value += shift * (digit as u64);
                 shift *= 10;
             }
@@ -203,8 +203,7 @@ impl BigInt {
             .zip(other.digits.iter().rev())
             .skip_while(|&(&a, &b)| a == b)
             .take(1)
-            .find(|&(&a, &b)| a < b)
-            .is_some()
+            .any(|(a, b)| a < b)
     }
 
     fn digits_gt(&self, other: &Self) -> bool {
@@ -221,8 +220,7 @@ impl BigInt {
             .zip(other.digits.iter().rev())
             .skip_while(|&(&a, &b)| a == b)
             .take(1)
-            .find(|&(&a, &b)| a > b)
-            .is_some()
+            .any(|(a, b)| a > b)
     }
 
     fn add_positives(self, other: Self) -> Self {
