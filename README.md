@@ -38,6 +38,7 @@ Contents
 * structs/binary_tree.rs
 * structs/bitset_iterators.rs
 * structs/bitset.rs
+* structs/complex.rs
 * structs/list_iterators.rs
 * structs/list_mut_iterators.rs
 * structs/list_mut.rs
