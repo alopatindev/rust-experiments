@@ -104,11 +104,17 @@ impl BigInt {
     }
 
     pub fn pow(&self, exponent: i32) -> Self {
-        let factor = self.clone();
-        let mut result = self.clone();
+        let mut result = Self::new(1);
+        let mut value = self.clone();
+        let mut power = exponent;
 
-        for _ in 1..exponent {
-            result *= factor.clone();
+        while power > 0 {
+            if power % 2 == 1 {
+                result *= value.clone();
+            }
+
+            value *= value.clone();
+            power /= 2;
         }
 
         result
