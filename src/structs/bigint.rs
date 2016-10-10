@@ -104,6 +104,8 @@ impl BigInt {
     }
 
     pub fn pow(&self, exponent: i32) -> Self {
+        // https://en.wikipedia.org/wiki/Exponentiation_by_squaring
+
         let mut result = Self::new(1);
         let mut value = self.clone();
         let mut power = exponent;
@@ -392,6 +394,8 @@ impl Mul for BigInt {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self {
+        // FIXME: improve performance
+
         let n = max(self.digits.len(), other.digits.len());
         let mut result = vec![0; 2 * n];
 
@@ -427,6 +431,7 @@ impl Div for BigInt {
 
     fn div(self, other: Self) -> Self {
         // FIXME: avoid clone?
+        // FIXME: improve performance
 
         let mut result = Self::zero();
 
@@ -453,6 +458,7 @@ impl Rem for BigInt {
 
     fn rem(self, other: Self) -> Self {
         // FIXME: avoid clone?
+        // FIXME: improve performance
 
         let mut numenator = self.clone().abs();
         let divisor = other.clone().abs();
