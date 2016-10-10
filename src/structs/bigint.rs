@@ -78,6 +78,14 @@ impl BigInt {
         }
     }
 
+    pub fn inc(&mut self) {
+        *self += BigInt::new(1)
+    }
+
+    pub fn dec(&mut self) {
+        *self -= BigInt::new(1)
+    }
+
     pub fn pow(&self, exponent: i32) -> Self {
         let factor = self.clone();
         let mut result = self.clone();
@@ -97,12 +105,13 @@ impl BigInt {
         // FIXME: avoid clone?
 
         let one = BigInt::new(1);
-        let mut n = self.clone() - one.clone();
+        let mut n = self.clone();
+        n.dec();
         let mut result = self.clone();
 
         while n > one {
             result *= n.clone();
-            n -= one.clone();
+            n.dec();
         }
 
         result
@@ -362,7 +371,6 @@ impl Div for BigInt {
     fn div(self, other: Self) -> Self {
         // FIXME: avoid clone?
 
-        let one = BigInt::new(1);
         let mut result = BigInt::zero();
 
         let mut numenator = self.clone().abs();
@@ -370,7 +378,7 @@ impl Div for BigInt {
 
         while numenator > divisor {
             numenator -= divisor.clone();
-            result += one.clone();
+            result.inc();
         }
 
         let result = if self.negative != other.negative {
@@ -506,8 +514,16 @@ mod tests {
         let mut result = BigInt::new(12);
         result += BigInt::new(3);
         assert_eq!("15", result.to_string());
+
         result += BigInt::new(0);
         assert_eq!("15", result.to_string());
+
+        result.inc();
+        assert_eq!("16", result.to_string());
+
+        result.dec();
+        result.dec();
+        assert_eq!("14", result.to_string());
     }
 
     #[test]
