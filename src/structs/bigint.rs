@@ -1,5 +1,5 @@
 use std::cmp::{max, Ordering};
-use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div};
+use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, Rem};
 
 #[derive(Clone, Debug)]
 pub struct BigInt {
@@ -285,7 +285,7 @@ impl Add for BigInt {
 }
 
 impl AddAssign for BigInt {
-    fn add_assign(&mut self, other: BigInt) {
+    fn add_assign(&mut self, other: Self) {
         let result = self.clone() + other;
         *self = result;
     }
@@ -308,7 +308,7 @@ impl Sub for BigInt {
 }
 
 impl SubAssign for BigInt {
-    fn sub_assign(&mut self, other: BigInt) {
+    fn sub_assign(&mut self, other: Self) {
         let result = self.clone() - other;
         *self = result;
     }
@@ -321,8 +321,6 @@ impl Mul for BigInt {
         let n = max(self.digits.len(), other.digits.len());
         let mut result = vec![0; 2 * n];
 
-        let negative = self.negative != other.negative;
-
         for (i, b) in other.digits.iter().enumerate() {
             for (j, a) in self.digits.iter().enumerate() {
                 let index = i + j;
@@ -333,6 +331,8 @@ impl Mul for BigInt {
             }
         }
 
+        let negative = self.negative != other.negative;
+
         BigInt {
                 negative: negative,
                 digits: result,
@@ -342,7 +342,7 @@ impl Mul for BigInt {
 }
 
 impl MulAssign for BigInt {
-    fn mul_assign(&mut self, other: BigInt) {
+    fn mul_assign(&mut self, other: Self) {
         let result = self.clone() * other;
         *self = result;
     }
@@ -352,7 +352,67 @@ impl Div for BigInt {
     type Output = Self;
 
     fn div(self, other: Self) -> Self {
-        unimplemented!()
+        let one = BigInt::new(1);
+        let mut result = BigInt::zero();
+
+        let numenator = self.clone();
+        let mut numenator = if numenator.negative {
+            numenator.negate()
+        } else {
+            numenator
+        };
+
+        let divisor = other.clone();
+        let divisor = if divisor.negative {
+            divisor.negate()
+        } else {
+            divisor
+        };
+
+        while numenator > divisor {
+            numenator -= divisor.clone();
+            result += one.clone();
+        }
+
+        let result = if self.negative != other.negative {
+            result.negate()
+        } else {
+            result
+        };
+
+        result.normalize()
+    }
+}
+
+impl Rem for BigInt {
+    type Output = Self;
+
+    fn rem(self, other: Self) -> Self {
+        let numenator = self.clone();
+        let mut numenator = if numenator.negative {
+            numenator.negate()
+        } else {
+            numenator
+        };
+
+        let divisor = other.clone();
+        let divisor = if divisor.negative {
+            divisor.negate()
+        } else {
+            divisor
+        };
+
+        while numenator > divisor {
+            numenator -= divisor.clone();
+        }
+
+        let result = if self.negative != other.negative {
+            numenator.negate()
+        } else {
+            numenator
+        };
+
+        result.normalize()
     }
 }
 
@@ -532,31 +592,41 @@ mod tests {
 
     #[test]
     fn divide() {
-        let result = BigInt::from(A) * BigInt::from(B);
+        let result = BigInt::from(A) / BigInt::from(B);
         assert_eq!("7", result.to_string());
 
-        let result = BigInt::from(B) * BigInt::from(A);
+        let result = BigInt::from(B) / BigInt::from(A);
         assert_eq!("0", result.to_string());
 
-        let result = BigInt::from(C) * BigInt::from(D);
+        let result = BigInt::from(C) / BigInt::from(D);
         assert_eq!("7", result.to_string());
 
-        let result = BigInt::from(D) * BigInt::from(C);
+        let result = BigInt::from(D) / BigInt::from(C);
         assert_eq!("0", result.to_string());
 
-        let result = BigInt::from(A) * BigInt::from(C);
+        let result = BigInt::from(A) / BigInt::from(C);
         assert_eq!("0", result.to_string());
 
-        let result = BigInt::from(A) * BigInt::from(D);
+        let result = BigInt::from(A) / BigInt::from(D);
         assert_eq!("-7", result.to_string());
     }
 
     #[test]
     fn modulo() {
-        let result = BigInt::from(A) * BigInt::from(B);
-        assert_eq!("1227637956743447768014", result.to_string());
+        let result = BigInt::from("123") % BigInt::from("5");
+        assert_eq!("3", result.to_string());
 
-        // FIXMD: negatives?
+        let result = BigInt::from("-123") % BigInt::from("5");
+        assert_eq!("-3", result.to_string());
+
+        let result = BigInt::from("123") % BigInt::from("-5");
+        assert_eq!("-3", result.to_string());
+
+        let result = BigInt::from("-123") % BigInt::from("-5");
+        assert_eq!("3", result.to_string());
+
+        let result = BigInt::from(A) % BigInt::from(B);
+        assert_eq!("1227637956743447768014", result.to_string());
     }
 
     #[test]
