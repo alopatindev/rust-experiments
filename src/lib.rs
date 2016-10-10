@@ -1,8 +1,8 @@
 #![allow(unstable_features)]
 #![allow(zero_prefixed_literal)] // FIXME
 #![feature(io)]
-#![feature(plugin)]
-#![plugin(clippy)]
+#![cfg_attr(feature="clippy", feature(plugin))]
+#![cfg_attr(feature="clippy", plugin(clippy))]
 
 #![feature(test)]
 extern crate test;

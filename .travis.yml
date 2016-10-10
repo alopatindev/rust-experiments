@@ -1,4 +1,5 @@
 language: rust
+
 addons:
   apt:
     packages:
@@ -7,17 +8,29 @@ addons:
       - libdw-dev
       - cmake
       - gcc
+
 rust:
   - stable
   - beta
   - nightly
+
+env:
+  global:
+    - CARGO_ARGS=""
+
 matrix:
+  include:
+    - rust: nightly
+      env: CARGO_ARGS="--features clippy"
   allow_failures:
     - rust: stable
     - rust: beta
+
 before_script: (cargo install rustfmt || true)
+
 script:
   - export PATH="${PATH}:${HOME}/.cargo/bin"
+  - export RUST_BACKTRACE=1
   - scripts/run_tests.sh
   - cargo run --verbose --bin hello
   - cargo run --verbose --bin head -- -h
@@ -29,6 +42,7 @@ script:
   - cargo run --verbose --bin wget -- -h
   - cargo run --verbose --bin wget -- 'https://www.rust-lang.org'
   - cargo bench
+
 after_success:
   - scripts/build_kcov.sh
   - scripts/send_kcov.sh

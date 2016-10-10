@@ -27,4 +27,4 @@ time = "0.1.35"
 walkdir = "0.1"
 
 [features]
-default = ["clippy"]
+default = []
