@@ -71,6 +71,13 @@ impl BigInt {
         }
     }
 
+    pub fn abs(self) -> Self {
+        BigInt {
+            negative: false,
+            digits: self.digits,
+        }
+    }
+
     pub fn pow(&self, exponent: i32) -> Self {
         let factor = self.clone();
         let mut result = self.clone();
@@ -204,6 +211,7 @@ impl BigInt {
                 Some(&x) => x,
                 None => 0,
             };
+
             let b = match other.digits.get(i) {
                 Some(&x) => x,
                 None => 0,
@@ -352,22 +360,13 @@ impl Div for BigInt {
     type Output = Self;
 
     fn div(self, other: Self) -> Self {
+        // FIXME: avoid clone?
+
         let one = BigInt::new(1);
         let mut result = BigInt::zero();
 
-        let numenator = self.clone();
-        let mut numenator = if numenator.negative {
-            numenator.negate()
-        } else {
-            numenator
-        };
-
-        let divisor = other.clone();
-        let divisor = if divisor.negative {
-            divisor.negate()
-        } else {
-            divisor
-        };
+        let mut numenator = self.clone().abs();
+        let divisor = other.clone().abs();
 
         while numenator > divisor {
             numenator -= divisor.clone();
@@ -388,19 +387,10 @@ impl Rem for BigInt {
     type Output = Self;
 
     fn rem(self, other: Self) -> Self {
-        let numenator = self.clone();
-        let mut numenator = if numenator.negative {
-            numenator.negate()
-        } else {
-            numenator
-        };
+        // FIXME: avoid clone?
 
-        let divisor = other.clone();
-        let divisor = if divisor.negative {
-            divisor.negate()
-        } else {
-            divisor
-        };
+        let mut numenator = self.clone().abs();
+        let divisor = other.clone().abs();
 
         while numenator > divisor {
             numenator -= divisor.clone();
@@ -482,12 +472,6 @@ mod tests {
     fn to_string() {
         assert_eq!("9876543233387652221098", BigInt::from(A).to_string());
         assert_eq!("-9876543233387652221098", BigInt::from(C).to_string());
-    }
-
-    #[test]
-    fn negate() {
-        let result = BigInt::from(A).negate();
-        assert_eq!("-9876543233387652221098", result.to_string());
     }
 
     #[test]
@@ -660,6 +644,18 @@ mod tests {
     }
 
     #[test]
+    fn negate() {
+        let result = BigInt::from(A).negate();
+        assert_eq!("-9876543233387652221098", result.to_string());
+    }
+
+    #[test]
+    fn abs() {
+        assert_eq!(BigInt::from(A), BigInt::from(A).abs());
+        assert_eq!(BigInt::from(A), BigInt::from(C).abs());
+    }
+
+    #[test]
     fn factorial() {
         assert_eq!("1", BigInt::from("1").factorial().to_string());
         assert_eq!("24", BigInt::from("4").factorial().to_string());
@@ -672,11 +668,19 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn sqrt() {
         assert_eq!("1", BigInt::from("1").sqrt().to_string());
         assert_eq!("5", BigInt::from("25").sqrt().to_string());
+        assert_eq!("6", BigInt::from("36").sqrt().to_string());
+        assert_eq!("12", BigInt::from("144").sqrt().to_string());
+        assert_eq!("30", BigInt::from("900").sqrt().to_string());
+
+        let result = BigInt::from("30").sqrt();
+        assert!(result == BigInt::new(5) || result == BigInt::new(6));
+
         assert_eq!("99380799118", BigInt::from(A).sqrt().to_string());
     }
 
-    // TOCO: benchmarks?
+    // TODO: benchmarks?
 }
