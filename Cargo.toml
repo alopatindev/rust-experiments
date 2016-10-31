@@ -1,7 +1,9 @@
 [package]
 name = "rust-experiments"
 version = "0.1.0"
-authors = ["Alexander Lopatin"]
+authors = ["Alexander Lopatin <github.com/alopatindev>"]
+repository = "https://github.com/alopatindev/rust-experiments"
+license = "MIT"
 
 [lib]
 name = "rust_experiments"
