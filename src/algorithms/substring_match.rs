@@ -1,30 +1,30 @@
 use std::collections::VecDeque;
 
 // O(|text| * |pattern|)
-pub fn slow_substring_matches(text: &str, pattern: &str) -> bool {
+pub fn slow_substring_find(text: &str, pattern: &str) -> Option<usize> {
     let n = text.len();
     let m = pattern.len();
 
     if n >= m {
         for i in 0..(n - m + 1) {
-            if string_matches(text, pattern, i) {
-                return true;
+            if string_find(text, pattern, i) {
+                return Some(i);
             }
         }
     }
 
-    false
+    None
 }
 
 // O(|text|)
 // https://www.youtube.com/watch?v=H4VrKHVG5qI
 // https://www.youtube.com/watch?v=BRO7mVIFt08&t=36m04s
-pub fn karp_rabin_substring_matches(text: &str, pattern: &str) -> bool {
+pub fn karp_rabin_substring_find(text: &str, pattern: &str) -> Option<usize> {
     let n = text.len();
     let m = pattern.len();
 
     if m == 0 {
-        return true;
+        return Some(0);
     } else if n >= m {
         let mut text_hasher = RollingHash::new();
         text_hasher.reserve(m);
@@ -39,16 +39,16 @@ pub fn karp_rabin_substring_matches(text: &str, pattern: &str) -> bool {
             text_hasher.append(ch);
 
             if text_hasher.len() == m && text_hasher.hash() == pattern_hasher.hash() &&
-               string_matches(text, pattern, i + 1 - m) {
-                return true;
+               string_find(text, pattern, i + 1 - m) {
+                return Some(i + 1 - m); // FIXME
             }
         }
     }
 
-    false
+    None
 }
 
-fn string_matches(text: &str, pattern: &str, from: usize) -> bool {
+fn string_find(text: &str, pattern: &str, from: usize) -> bool {
     let m = pattern.len();
     &text[from..(from + m)] == pattern
 }
@@ -112,29 +112,34 @@ mod tests {
 
     #[test]
     fn simple_slow() {
-        simple(&slow_substring_matches);
+        simple(&slow_substring_find);
     }
 
     #[test]
     fn simple_karp_rabin() {
-        simple(&karp_rabin_substring_matches);
+        simple(&karp_rabin_substring_find);
     }
 
     // TODO: random input test
     // TODO: benchmark
 
-    fn simple(substring_matches: &Fn(&str, &str) -> bool) {
-        assert!(substring_matches("abc", "bc"));
-        assert!(substring_matches("foo bar hello world bla bla bla", "hello world"));
-        assert!(substring_matches("hello world bla bla bla", "hello world"));
-        assert!(substring_matches("foo bar hello world", "hello world"));
-        assert!(substring_matches("hello world", "hello world"));
-        assert!(!substring_matches("foo bar hello worl", "hello world"));
-        assert!(!substring_matches("ello world bla bla bla", "hello world"));
-        assert!(!substring_matches("", "hello world"));
-        assert!(!substring_matches("foo", "hello world"));
-        assert!(!substring_matches("foo bar Hello world", "hello world"));
-        assert!(substring_matches("foo", ""));
-        assert!(substring_matches("zzzzzzzzzzzzz hello world zzzzzzz", " zzzzzzz"));
+    fn simple(substring_find: &Fn(&str, &str) -> Option<usize>) {
+        assert_eq!(Some(1), substring_find("abc", "bc"));
+        assert_eq!(Some(8),
+                   substring_find("foo bar hello world bla bla bla", "hello world"));
+        assert_eq!(Some(0),
+                   substring_find("hello world bla bla bla", "hello world"));
+        assert_eq!(Some(8),
+                   substring_find("foo bar hello world", "hello world"));
+        assert_eq!(Some(0), substring_find("hello world", "hello world"));
+        assert_eq!(None, substring_find("foo bar hello worl", "hello world"));
+        assert_eq!(None,
+                   substring_find("ello world bla bla bla", "hello world"));
+        assert_eq!(None, substring_find("", "hello world"));
+        assert_eq!(None, substring_find("foo", "hello world"));
+        assert_eq!(None, substring_find("foo bar Hello world", "hello world"));
+        assert_eq!(Some(0), substring_find("foo", ""));
+        assert_eq!(Some(25),
+                   substring_find("zzzzzzzzzzzzz hello world zzzzzzz", " zzzzzzz"));
     }
 }
