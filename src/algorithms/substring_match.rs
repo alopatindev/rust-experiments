@@ -126,7 +126,16 @@ mod tests {
         simple(&karp_rabin_substring_find);
     }
 
-    // TODO: random input test
+    quickcheck! {
+        fn random_slow(text: String, pattern: String) -> bool {
+            random_check(&slow_substring_find, text, pattern)
+        }
+
+        fn random_karp_rabin(text: String, pattern: String) -> bool {
+            random_check(&karp_rabin_substring_find, text, pattern)
+        }
+    }
+
     // TODO: benchmark
 
     fn simple(substring_find: &Fn(&str, &str) -> Option<usize>) {
@@ -150,5 +159,21 @@ mod tests {
         assert_eq!(Some(6),
                    substring_find("Абвгд Привет Раст еёжз",
                                   "Привет Раст"));
+        assert_eq!(Some(13),
+                   substring_find("1111 2342342 abcdef abcdef hello world banana
+ foo bar hello world banananana bananananananana foo bar hello world asdfghjk
+ asdf asdf sadf asdf sadf asdf sadf hello",
+                                  "abcdef abcdef hello world banana
+ foo bar hello world banananana bananananananana foo bar hello world asdfghjk
+ asdf asdf sadf asdf sadf asdf sadf hello"));
+    }
+
+    fn random_check(substring_find: &Fn(&str, &str) -> Option<usize>,
+                    text: String,
+                    pattern: String)
+                    -> bool {
+        let text = text.as_str();
+        let pattern = pattern.as_str();
+        substring_find(text, pattern) == text.find(pattern)
     }
 }
