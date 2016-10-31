@@ -18,6 +18,7 @@ Contents
 * algorithms/max_subarray.rs
 * algorithms/merge_sort.rs
 * algorithms/quick_sort.rs
+* algorithms/substring_match.rs
 * bin/archiver.rs
 * bin/head.rs
 * bin/hello.rs

@@ -4,3 +4,4 @@ pub mod insertion_sort;
 pub mod merge_sort;
 pub mod max_subarray;
 pub mod quick_sort;
+pub mod substring_match;
