@@ -142,7 +142,13 @@ impl<'a> RollingHash<'a> {
 
 #[cfg(test)]
 mod tests {
+    extern crate rand;
+
+    use rand::Rng;
     use super::*;
+    use test::Bencher;
+
+    const BENCH_MAX_N: usize = 500;
 
     #[test]
     fn simple_slow() {
@@ -164,7 +170,25 @@ mod tests {
         }
     }
 
-    // TODO: benchmark
+    #[bench]
+    fn bench_slow(b: &mut Bencher) {
+        b.iter(|| {
+            for n in 0..BENCH_MAX_N {
+                let (text, pattern) = make_random_strings(n);
+                let _ = random_check(&slow_substring_find, text, pattern);
+            }
+        })
+    }
+
+    #[bench]
+    fn bench_karp_rabin(b: &mut Bencher) {
+        b.iter(|| {
+            for n in 0..BENCH_MAX_N {
+                let (text, pattern) = make_random_strings(n);
+                let _ = random_check(&karp_rabin_substring_find, text, pattern);
+            }
+        })
+    }
 
     #[test]
     fn test_rolling_hash() {
@@ -251,5 +275,22 @@ mod tests {
             }
             None => true,
         }
+    }
+
+    fn make_random_strings(n: usize) -> (String, String) {
+        let m = n / 2;
+        let mut rng = rand::thread_rng();
+        let mut text = String::with_capacity(n);
+        let mut pattern = String::with_capacity(m);
+
+        for _ in 0..n {
+            text.push(rng.gen_range('a' as u8, 'z' as u8) as char);
+        }
+
+        for _ in 0..m {
+            pattern.push(rng.gen_range('a' as u8, 'z' as u8) as char);
+        }
+
+        (text, pattern)
     }
 }
