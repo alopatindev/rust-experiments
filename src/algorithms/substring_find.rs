@@ -18,6 +18,7 @@ pub fn slow_substring_find(text: &str, pattern: &str) -> Option<usize> {
 
 // O(|text|)
 // https://www.youtube.com/watch?v=H4VrKHVG5qI
+// https://www.youtube.com/watch?v=RkBrAXoau8Y
 // https://www.youtube.com/watch?v=BRO7mVIFt08&t=36m04s
 pub fn karp_rabin_substring_find(text: &str, pattern: &str) -> Option<usize> {
     let n = text.chars().count();
@@ -27,15 +28,11 @@ pub fn karp_rabin_substring_find(text: &str, pattern: &str) -> Option<usize> {
         return Some(0);
     } else if n >= m {
         let mut text_hasher = RollingHash::new();
-        text_hasher.reserve(m);
+        text_hasher.set_capacity(m);
 
         let pattern_hasher = RollingHash::from(pattern);
 
         for (i, ch) in text.chars().enumerate() {
-            if text_hasher.len() == m {
-                text_hasher.pop();
-            }
-
             text_hasher.append(ch);
 
             if text_hasher.len() == m && text_hasher.hash() == pattern_hasher.hash() {
@@ -62,24 +59,28 @@ fn string_find(text: &str, pattern: &str, from: usize) -> bool {
 struct RollingHash {
     hash: u64,
     items: VecDeque<u64>,
+    capacity: usize,
 }
 
-const BASE_PRIME: u64 = 3;
+const BIG_PRIME: u64 = 524_287;
+const RADIX: u64 = 256;
 
 impl RollingHash {
     fn new() -> Self {
         RollingHash {
             hash: 0,
             items: VecDeque::new(),
+            capacity: 0,
         }
     }
 
     fn from(text: &str) -> Self {
         let mut result = Self::new();
-        result.reserve(text.chars().count());
+        let m = text.chars().count();
+        result.set_capacity(m);
 
-        for t in text.chars() {
-            result.append(t);
+        for ch in text.chars() {
+            result.append(ch);
         }
 
         result
@@ -93,22 +94,32 @@ impl RollingHash {
         self.hash
     }
 
-    fn reserve(&mut self, n: usize) {
-        self.items.reserve(n);
+    fn set_capacity(&mut self, m: usize) {
+        self.items.reserve(m);
+        self.capacity = m;
     }
 
     fn append(&mut self, ch: char) {
-        let m = self.len() as u32;
         let item = ch as u64;
-        self.hash += item * BASE_PRIME.pow(m);
+
+        if self.len() == self.capacity {
+            let rm = self.pow_mod(RADIX, self.capacity as u64 - 1);
+            let front_item = self.items.pop_front().unwrap();
+            self.hash = (self.hash + BIG_PRIME - (rm * front_item) % BIG_PRIME) % BIG_PRIME;
+        }
+
+        self.hash = (self.hash * RADIX + item) % BIG_PRIME;
         self.items.push_back(item);
     }
 
-    fn pop(&mut self) {
-        assert!(self.items.len() > 0);
-        if let Some(item) = self.items.pop_front() {
-            self.hash = (self.hash - item) / BASE_PRIME;
+    fn pow_mod(&self, x: u64, exp: u64) -> u64 {
+        let mut result = 1;
+
+        for _ in 0..exp {
+            result = (result * x) % BIG_PRIME;
         }
+
+        result
     }
 }
 
@@ -137,6 +148,37 @@ mod tests {
     }
 
     // TODO: benchmark
+
+    #[test]
+    fn test_rolling_hash() {
+        use super::RollingHash;
+
+        let text = RollingHash::from("123");
+
+        {
+            let mut pattern = RollingHash::new();
+            pattern.set_capacity(text.len());
+
+            pattern.append('1');
+            pattern.append('2');
+            pattern.append('3');
+
+            assert_eq!(text.hash(), pattern.hash());
+        }
+
+        {
+            let mut pattern = RollingHash::new();
+            pattern.set_capacity(text.len());
+
+            pattern.append('0');
+            pattern.append('1');
+            pattern.append('2');
+            assert!(text.hash() != pattern.hash());
+
+            pattern.append('3');
+            assert_eq!(text.hash(), pattern.hash());
+        }
+    }
 
     fn simple(substring_find: &Fn(&str, &str) -> Option<usize>) {
         assert_eq!(Some(1), substring_find("abc", "bc"));
