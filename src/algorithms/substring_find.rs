@@ -27,9 +27,7 @@ pub fn karp_rabin_substring_find(text: &str, pattern: &str) -> Option<usize> {
     if m == 0 {
         return Some(0);
     } else if n >= m {
-        let mut text_hasher = RollingHash::new();
-        text_hasher.set_capacity(m);
-
+        let mut text_hasher = RollingHash::with_capacity(m);
         let pattern_hasher = RollingHash::from(pattern);
 
         for (i, ch) in text.chars().enumerate() {
@@ -66,18 +64,17 @@ const BIG_PRIME: u64 = 524_287;
 const RADIX: u64 = 256;
 
 impl RollingHash {
-    fn new() -> Self {
+    fn with_capacity(capacity: usize) -> Self {
         RollingHash {
             hash: 0,
-            items: VecDeque::new(),
-            capacity: 0,
+            items: VecDeque::with_capacity(capacity),
+            capacity: capacity,
         }
     }
 
     fn from(text: &str) -> Self {
-        let mut result = Self::new();
-        let m = text.chars().count();
-        result.set_capacity(m);
+        let capacity = text.chars().count();
+        let mut result = Self::with_capacity(capacity);
 
         for ch in text.chars() {
             result.append(ch);
@@ -94,22 +91,24 @@ impl RollingHash {
         self.hash
     }
 
-    fn set_capacity(&mut self, m: usize) {
-        self.items.reserve(m);
-        self.capacity = m;
-    }
-
     fn append(&mut self, ch: char) {
         let item = ch as u64;
 
         if self.len() == self.capacity {
-            let rm = self.pow_mod(RADIX, self.capacity as u64 - 1);
-            let front_item = self.items.pop_front().unwrap();
-            self.hash = (self.hash + BIG_PRIME - (rm * front_item) % BIG_PRIME) % BIG_PRIME;
+            self.remove_head();
         }
 
         self.hash = (self.hash * RADIX + item) % BIG_PRIME;
         self.items.push_back(item);
+    }
+
+    fn remove_head(&mut self) {
+        let radix_pow = self.pow_mod(RADIX, self.capacity as u64 - 1);
+        let head_item = self.items.pop_front().unwrap();
+        let head_hash = (radix_pow * head_item) % BIG_PRIME;
+
+        self.hash = self.hash + BIG_PRIME - head_hash;
+        self.hash %= BIG_PRIME;
     }
 
     fn pow_mod(&self, x: u64, exp: u64) -> u64 {
@@ -156,8 +155,7 @@ mod tests {
         let text = RollingHash::from("123");
 
         {
-            let mut pattern = RollingHash::new();
-            pattern.set_capacity(text.len());
+            let mut pattern = RollingHash::with_capacity(text.len());
 
             pattern.append('1');
             pattern.append('2');
@@ -167,8 +165,7 @@ mod tests {
         }
 
         {
-            let mut pattern = RollingHash::new();
-            pattern.set_capacity(text.len());
+            let mut pattern = RollingHash::with_capacity(text.len());
 
             pattern.append('0');
             pattern.append('1');
@@ -216,6 +213,16 @@ mod tests {
                     -> bool {
         let text = text.as_str();
         let pattern = pattern.as_str();
-        substring_find(text, pattern) == text.find(pattern)
+
+        match substring_find(text, pattern) {
+            Some(pos) => {
+                let pattern_found: String = text.chars()
+                    .skip(pos)
+                    .take(pattern.chars().count())
+                    .collect();
+                pattern == pattern_found.as_str()
+            }
+            None => true,
+        }
     }
 }
