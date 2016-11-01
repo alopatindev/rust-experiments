@@ -1,3 +1,5 @@
+use std::str::Chars;
+
 // O(|text| * |pattern|)
 pub fn slow_substring_find(text: &str, pattern: &str) -> Option<usize> {
     let n = text.chars().count();
@@ -56,7 +58,8 @@ struct RollingHash<'a> {
     hash: u64,
     capacity: usize,
 
-    text: &'a str,
+    head_chars: Chars<'a>,
+    tail_chars: Chars<'a>,
     tail: usize,
 }
 
@@ -65,10 +68,13 @@ const RADIX: u64 = 256;
 
 impl<'a> RollingHash<'a> {
     fn with_capacity(capacity: usize, text: &'a str) -> Self {
+        let chars = text.chars();
+
         RollingHash {
             hash: 0,
             capacity: capacity,
-            text: text,
+            head_chars: chars.clone(),
+            tail_chars: chars,
             tail: 0,
         }
     }
@@ -77,7 +83,7 @@ impl<'a> RollingHash<'a> {
         let capacity = text.chars().count();
         let mut result = Self::with_capacity(capacity, text);
 
-        for _ in text.chars() {
+        for _ in 0..capacity {
             result.append();
         }
 
@@ -97,10 +103,7 @@ impl<'a> RollingHash<'a> {
     }
 
     fn append(&mut self) {
-        let tail_item = self.text
-            .chars()
-            .nth(self.tail)
-            .unwrap() as u64;
+        let tail_item = Self::next_char(&mut self.tail_chars);
 
         if self.len() == self.capacity {
             self.remove_head();
@@ -111,16 +114,7 @@ impl<'a> RollingHash<'a> {
     }
 
     fn remove_head(&mut self) {
-        let head = if self.tail <= self.capacity {
-            0
-        } else {
-            self.tail - self.capacity
-        };
-
-        let head_item = self.text
-            .chars()
-            .nth(head)
-            .unwrap() as u64;
+        let head_item = Self::next_char(&mut self.head_chars);
 
         let radix_pow = self.pow_mod(RADIX, self.capacity as u64 - 1);
         let head_hash = (radix_pow * head_item) % BIG_PRIME;
@@ -137,6 +131,10 @@ impl<'a> RollingHash<'a> {
         }
 
         result
+    }
+
+    fn next_char(chars: &mut Chars<'a>) -> u64 {
+        chars.next().unwrap() as u64
     }
 }
 
