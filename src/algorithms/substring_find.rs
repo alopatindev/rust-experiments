@@ -282,11 +282,11 @@ mod tests {
         let mut pattern = String::with_capacity(m);
 
         for _ in 0..n {
-            text.push(rng.gen_range('a' as u8, 'z' as u8) as char);
+            text.push(rng.gen_range(b'a', b'z') as char);
         }
 
         for _ in 0..m {
-            pattern.push(rng.gen_range('a' as u8, 'z' as u8) as char);
+            pattern.push(rng.gen_range(b'a', b'z') as char);
         }
 
         (text, pattern)
