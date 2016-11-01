@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 // O(|text| * |pattern|)
 pub fn slow_substring_find(text: &str, pattern: &str) -> Option<usize> {
     let n = text.chars().count();
@@ -27,11 +25,11 @@ pub fn karp_rabin_substring_find(text: &str, pattern: &str) -> Option<usize> {
     if m == 0 {
         return Some(0);
     } else if n >= m {
-        let mut text_hasher = RollingHash::with_capacity(m);
+        let mut text_hasher = RollingHash::with_capacity(m, text);
         let pattern_hasher = RollingHash::from(pattern);
 
-        for (i, ch) in text.chars().enumerate() {
-            text_hasher.append(ch);
+        for i in 0..n {
+            text_hasher.append();
 
             if text_hasher.len() == m && text_hasher.hash() == pattern_hasher.hash() {
                 let from = i + 1 - m;
@@ -54,57 +52,77 @@ fn string_find(text: &str, pattern: &str, from: usize) -> bool {
     ts == ps
 }
 
-struct RollingHash {
+struct RollingHash<'a> {
     hash: u64,
-    items: VecDeque<u64>,
     capacity: usize,
+
+    text: &'a str,
+    tail: usize,
 }
 
 const BIG_PRIME: u64 = 524_287;
 const RADIX: u64 = 256;
 
-impl RollingHash {
-    fn with_capacity(capacity: usize) -> Self {
+impl<'a> RollingHash<'a> {
+    fn with_capacity(capacity: usize, text: &'a str) -> Self {
         RollingHash {
             hash: 0,
-            items: VecDeque::with_capacity(capacity),
             capacity: capacity,
+            text: text,
+            tail: 0,
         }
     }
 
-    fn from(text: &str) -> Self {
+    fn from(text: &'a str) -> Self {
         let capacity = text.chars().count();
-        let mut result = Self::with_capacity(capacity);
+        let mut result = Self::with_capacity(capacity, text);
 
-        for ch in text.chars() {
-            result.append(ch);
+        for _ in text.chars() {
+            result.append();
         }
 
         result
     }
 
     fn len(&self) -> usize {
-        self.items.len()
+        if self.tail < self.capacity {
+            self.tail
+        } else {
+            self.capacity
+        }
     }
 
     fn hash(&self) -> u64 {
         self.hash
     }
 
-    fn append(&mut self, ch: char) {
-        let item = ch as u64;
+    fn append(&mut self) {
+        let tail_item = self.text
+            .chars()
+            .nth(self.tail)
+            .unwrap() as u64;
 
         if self.len() == self.capacity {
             self.remove_head();
         }
 
-        self.hash = (self.hash * RADIX + item) % BIG_PRIME;
-        self.items.push_back(item);
+        self.hash = (self.hash * RADIX + tail_item) % BIG_PRIME;
+        self.tail += 1;
     }
 
     fn remove_head(&mut self) {
+        let head = if self.tail <= self.capacity {
+            0
+        } else {
+            self.tail - self.capacity
+        };
+
+        let head_item = self.text
+            .chars()
+            .nth(head)
+            .unwrap() as u64;
+
         let radix_pow = self.pow_mod(RADIX, self.capacity as u64 - 1);
-        let head_item = self.items.pop_front().unwrap();
         let head_hash = (radix_pow * head_item) % BIG_PRIME;
 
         self.hash = self.hash + BIG_PRIME - head_hash;
@@ -152,28 +170,37 @@ mod tests {
     fn test_rolling_hash() {
         use super::RollingHash;
 
-        let text = RollingHash::from("123");
+        let text = "123";
+        let text_hash = RollingHash::from(text);
 
         {
-            let mut pattern = RollingHash::with_capacity(text.len());
+            let mut pattern = RollingHash::with_capacity(text_hash.len(), text);
 
-            pattern.append('1');
-            pattern.append('2');
-            pattern.append('3');
+            pattern.append();
+            pattern.append();
+            pattern.append();
 
-            assert_eq!(text.hash(), pattern.hash());
+            assert_eq!(text_hash.hash(), pattern.hash());
         }
 
         {
-            let mut pattern = RollingHash::with_capacity(text.len());
+            let text_longer = "01234";
+            let mut pattern = RollingHash::with_capacity(text_hash.len(), text_longer);
 
-            pattern.append('0');
-            pattern.append('1');
-            pattern.append('2');
-            assert!(text.hash() != pattern.hash());
+            pattern.append();
+            assert!(text_hash.hash() != pattern.hash());
 
-            pattern.append('3');
-            assert_eq!(text.hash(), pattern.hash());
+            pattern.append();
+            assert!(text_hash.hash() != pattern.hash());
+
+            pattern.append();
+            assert!(text_hash.hash() != pattern.hash());
+
+            pattern.append();
+            assert_eq!(text_hash.hash(), pattern.hash());
+
+            pattern.append();
+            assert!(text_hash.hash() != pattern.hash());
         }
     }
 
