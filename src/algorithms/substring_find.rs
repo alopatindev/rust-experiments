@@ -45,6 +45,7 @@ pub fn karp_rabin_substring_find(text: &str, pattern: &str) -> Option<usize> {
     None
 }
 
+// O(|text|)
 fn string_find(text: &str, pattern: &str, from: usize) -> bool {
     let m = pattern.chars().count();
 

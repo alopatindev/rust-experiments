@@ -21,6 +21,8 @@ pub fn max_sum_contiguous_naive(a: &[i64]) -> i64 {
     sum
 }
 
+// O(n)
+// https://www.youtube.com/watch?v=86CQq3pKSUw
 pub fn max_sum_contiguous_kadane(a: &[i64]) -> i64 {
     if a.is_empty() {
         return 0;
