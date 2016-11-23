@@ -24,5 +24,6 @@ pub mod algorithms;
 pub mod cli;
 pub mod encoding;
 pub mod format;
+pub mod interpreters;
 pub mod structs;
 pub mod terminal;
