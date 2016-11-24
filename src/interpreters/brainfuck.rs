@@ -1,29 +1,26 @@
-use std::collections::hash_set::HashSet;
+use std::io::{Read, Write};
 use std::num::Wrapping;
 
-type Memory = Vec<u8>;
-
-struct VM {
+pub struct VM<R: Read, W: Write> {
     program: Vec<char>,
-    input: Memory,
-    memory: Memory,
+    input: R,
+    output: W,
+    output_buffer: Vec<u8>,
+
+    memory: Vec<u8>,
     memory_index: usize,
     program_counter: usize,
-    output: String,
-    output_buffer: String,
 
     program_counter_updated: bool,
     loops: Vec<usize>,
 }
 
-type OutputMemoryIndex = (String, Memory, usize);
+const MEMORY_CAPACITY: usize = 512;
+const OUTPUT_BUFFER_CAPACITY: usize = 128;
+const LOOPS_CAPACITY: usize = 128;
 
-const DEFAULT_MEMORY_CAPACITY: usize = 512;
-const DEFAULT_OUTPUT_CAPACITY: usize = 512;
-const DEFAULT_LOOPS_CAPACITY: usize = 128;
-
-impl VM {
-    fn new(program: String, input: Memory) -> VM {
+impl<R: Read, W: Write> VM<R, W> {
+    pub fn new(program: String, input: R, output: W) -> Self {
         let supported_commands = hashset!{'+', '-', '<', '>', '[', ']', ',', '.'};
         let filtered_program = program.chars()
             .filter(|x| supported_commands.contains(x))
@@ -32,18 +29,19 @@ impl VM {
         VM {
             program: filtered_program,
             input: input,
-            memory: Vec::with_capacity(DEFAULT_MEMORY_CAPACITY),
+            output: output,
+            output_buffer: Vec::with_capacity(OUTPUT_BUFFER_CAPACITY),
+
+            memory: Vec::with_capacity(MEMORY_CAPACITY),
             memory_index: 0,
             program_counter: 0,
-            output: String::with_capacity(DEFAULT_OUTPUT_CAPACITY),
-            output_buffer: String::with_capacity(DEFAULT_OUTPUT_CAPACITY),
 
             program_counter_updated: false,
-            loops: Vec::with_capacity(DEFAULT_LOOPS_CAPACITY),
+            loops: Vec::with_capacity(LOOPS_CAPACITY),
         }
     }
 
-    fn run(&mut self) -> OutputMemoryIndex {
+    pub fn run(&mut self) {
         while self.program_counter < self.program.len() {
             let command = self.program[self.program_counter];
             match command {
@@ -66,11 +64,25 @@ impl VM {
         }
 
         if !self.output_buffer.is_empty() {
-            print!("{}", self.output_buffer);
-            self.output_buffer.clear();
+            self.flush_output_buffer();
+        }
+    }
+
+    pub fn get_output_mut(&mut self) -> &mut W {
+        &mut self.output
+    }
+
+    pub fn filtered_memory(&self) -> Vec<u8> {
+        let mut postfix_zeros = self.memory.len();
+        for &value in self.memory.iter().rev() {
+            if value == 0 {
+                postfix_zeros -= 1;
+            } else {
+                break;
+            }
         }
 
-        (self.output.clone(), self.filtered_memory(), self.memory_index)
+        self.memory[0..postfix_zeros].to_vec()
     }
 
     fn increment(&mut self) {
@@ -131,24 +143,27 @@ impl VM {
     }
 
     fn read(&mut self) {
-        if let Some(value) = self.input.pop() {
+        let mut buffer = [0; 1];
+        if let Ok(_) = self.input.read(&mut buffer) {
             self.maybe_grow_memory();
-            self.memory[self.memory_index] = value;
+            self.memory[self.memory_index] = buffer[0];
         }
     }
 
     fn write(&mut self) {
         self.maybe_grow_memory();
         let value = self.memory[self.memory_index];
+        self.output_buffer.push(value);
 
-        let ch = value as char;
-        self.output.push(ch);
-        self.output_buffer.push(ch);
-
-        if ch == '\n' {
-            print!("{}", self.output_buffer);
-            self.output_buffer.clear();
+        if value == b'\n' {
+            self.flush_output_buffer();
         }
+    }
+
+    fn flush_output_buffer(&mut self) {
+        self.output.write(&self.output_buffer[..]).unwrap();
+        self.output.flush().unwrap();
+        self.output_buffer.clear();
     }
 
     fn maybe_grow_memory(&mut self) {
@@ -157,40 +172,16 @@ impl VM {
             self.memory.resize(new_len, 0)
         }
     }
-
-    fn filtered_memory(&self) -> Memory {
-        let mut postfix_zeros = self.memory.len();
-        for &value in self.memory.iter().rev() {
-            if value == 0 {
-                postfix_zeros -= 1;
-            } else {
-                break;
-            }
-        }
-
-        self.memory[0..postfix_zeros].to_vec()
-    }
-}
-
-pub fn run<S: Into<String>>(program: S, input: S) -> OutputMemoryIndex {
-    let program = program.into();
-    let input = input.into()
-        .chars()
-        .rev()
-        .map(|x| x as u8)
-        .collect::<Memory>();
-    let mut vm = VM::new(program, input);
-    vm.run()
 }
 
 #[cfg(test)]
 mod tests {
+    use std::io::{BufReader, BufWriter};
     use super::*;
-    use super::Memory;
 
     #[test]
     fn simple() {
-        let empty_vec = || Memory::new();
+        let empty_vec = || Vec::new();
         let empty_string = || "".to_string();
 
         assert_eq!(empty_vec(), run("", "").1);
@@ -228,6 +219,30 @@ mod tests {
                        >+.+++++++..+++.>++.<<+++++++++++++++.>.+++.---
                        ---.--------.>+.>.",
                        ""));
+    }
+
+    fn run<S: Into<String>>(program: S, input: S) -> (String, Vec<u8>, usize) {
+        let program = program.into();
+
+        let input = input.into();
+        let input = input.as_bytes();
+        let input = BufReader::new(input);
+
+        let output: Vec<u8> = vec![];
+        let output = BufWriter::new(output);
+
+        let mut vm = VM::new(program, input, output);
+        vm.run();
+
+        let output_string = vm.get_output_mut()
+            .get_mut()
+            .by_ref()
+            .as_slice()
+            .iter()
+            .map(|x| *x as char)
+            .collect::<String>();
+
+        (output_string, vm.filtered_memory(), vm.memory_index)
     }
 
     fn repeat_char(ch: u8, n: usize) -> String {
