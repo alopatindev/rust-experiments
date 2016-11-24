@@ -20,6 +20,7 @@ Contents
 * algorithms/quick_sort.rs
 * algorithms/substring_find.rs
 * bin/archiver.rs
+* bin/bf.rs
 * bin/head.rs
 * bin/hello.rs
 * bin/pngconvert.rs
