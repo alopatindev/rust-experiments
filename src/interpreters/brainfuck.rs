@@ -144,7 +144,7 @@ impl<R: Read, W: Write> VM<R, W> {
 
     fn read(&mut self) {
         let mut buffer = [0; 1];
-        if let Ok(_) = self.input.read(&mut buffer) {
+        if self.input.read(&mut buffer).is_ok() {
             self.maybe_grow_memory();
             self.memory[self.memory_index] = buffer[0];
         }
